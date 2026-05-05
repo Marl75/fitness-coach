@@ -829,13 +829,16 @@
   /* Exercise actions */
   .ex-actions {
     display: flex;
+    flex-direction: column;
     gap: 8px;
     margin-top: 12px;
-    flex-wrap: wrap;
+  }
+  .ex-actions-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
   }
   .ex-action {
-    flex: 1;
-    min-width: 60px;
     padding: 8px 10px;
     background: var(--surface2);
     border: 1.5px solid rgba(255,255,255,.06);
@@ -851,7 +854,7 @@
     gap: 4px;
   }
   .ex-action:hover { border-color: var(--accent); color: var(--text); }
-  .ex-action.btn-detail { flex: 0 0 auto; min-width: 90px; }
+  .ex-action.btn-detail { width: 100%; }
   .ex-action.active.like { background: rgba(52,211,153,.2); border-color: var(--green); color: var(--green); }
   .ex-action.active.meh { background: rgba(251,146,60,.2); border-color: var(--orange); color: var(--orange); }
   .ex-action.active.done { background: var(--accent-glow); border-color: var(--accent); color: var(--accent2); }
@@ -2371,10 +2374,12 @@ function renderExerciseCard(ex, dayIdx, exIdx) {
     <div class="ex-sets">${ex.sets.map(s => `<span class="set-tag">${s}</span>`).join('')}</div>
     <div class="ex-actions">
       <button class="ex-action btn-detail" onclick="showExerciseDetail('${ex.id}')">📖 Détails</button>
-      <button class="ex-action ${done?'active done':''}" onclick="toggleDone('${ex.id}',${dayIdx},${exIdx})">${done?'✓ Fait':'☐ Faire'}</button>
-      <button class="ex-action ${rating==='like'?'active like':''}" onclick="rateEx('${ex.id}','like',${dayIdx},${exIdx})" title="J'aime">😍</button>
-      <button class="ex-action ${rating==='meh'?'active meh':''}" onclick="rateEx('${ex.id}','meh',${dayIdx},${exIdx})" title="Moyen">😐</button>
-      <button class="ex-action" onclick="rateEx('${ex.id}','dislike',${dayIdx},${exIdx})" title="Pas aimé, remplacer">👎</button>
+      <div class="ex-actions-row">
+        <button class="ex-action ${done?'active done':''}" onclick="toggleDone('${ex.id}',${dayIdx},${exIdx})">${done?'✓ Fait':'☐ Faire'}</button>
+        <button class="ex-action ${rating==='like'?'active like':''}" onclick="rateEx('${ex.id}','like',${dayIdx},${exIdx})" title="J'aime">😍</button>
+        <button class="ex-action ${rating==='meh'?'active meh':''}" onclick="rateEx('${ex.id}','meh',${dayIdx},${exIdx})" title="Moyen">😐</button>
+        <button class="ex-action" onclick="rateEx('${ex.id}','dislike',${dayIdx},${exIdx})" title="Pas aimé, remplacer">👎</button>
+      </div>
     </div>
   </div>`;
 }
