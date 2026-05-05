@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FitCoach — Ton programme personnalisé</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" media="print" onload="this.media='all'">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 
   :root {
     --bg: #0f0f13;
@@ -1238,13 +1241,19 @@ function setSyncStatus(s) {
   el.title = s === 'synced' ? 'Synchronisé avec le cloud' : s === 'loading' ? 'Synchronisation...' : s === 'error' ? 'Erreur de sync (les données sont quand même sauvées localement)' : '';
 }
 
+function fetchWithTimeout(url, options, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, {...options, signal: ctrl.signal}).finally(() => clearTimeout(t));
+}
+
 async function fetchFullBin() {
   if (!CLOUD_ENABLED) return null;
   try {
     setSyncStatus('loading');
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+    const r = await fetchWithTimeout(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
       headers: { 'X-Master-Key': JSONBIN_KEY, 'X-Bin-Meta': 'false' }
-    });
+    }, 6000);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
     const record = j.record || j;
@@ -2912,11 +2921,10 @@ function showUserCodeCard(allowCancel) {
 }
 
 function closeUserCodeCard() {
-  // Resume normal flow
-  bootstrapAfterCode();
+  bootstrapAfterCode(false);
 }
 
-async function confirmUserCode() {
+function confirmUserCode() {
   const raw = document.getElementById('userCodeInput').value.trim().toLowerCase();
   const code = raw.replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   if (!code || code.length < 3) { alert('Code trop court (3 caractères minimum)'); return; }
@@ -2924,26 +2932,12 @@ async function confirmUserCode() {
   userCode = code;
   localStorage.setItem(USER_CODE_KEY, code);
   if (isNew) {
-    // Wipe local cache so cloud data for new code is loaded fresh
     localStorage.removeItem(PROFILES_KEY);
   }
-  await bootstrapAfterCode();
+  bootstrapAfterCode(isNew);
 }
 
-async function bootstrapAfterCode() {
-  if (CLOUD_ENABLED && userCode) {
-    const cloud = await cloudFetch();
-    if (cloud && cloud.profiles) {
-      const local = JSON.parse(localStorage.getItem(PROFILES_KEY) || 'null');
-      const cloudTs = cloud.lastUpdated || 0;
-      const localTs = (local && local.lastUpdated) || 0;
-      if (!local || cloudTs >= localTs) {
-        localStorage.setItem(PROFILES_KEY, JSON.stringify(cloud));
-      } else if (localTs > cloudTs) {
-        cloudPush(local);
-      }
-    }
-  }
+function showInitialUI() {
   const d = loadProfiles();
   const ids = Object.keys(d.profiles);
   if (ids.length === 0) {
@@ -2955,13 +2949,48 @@ async function bootstrapAfterCode() {
   }
 }
 
-async function bootstrap() {
+async function syncFromCloudInBackground(isInitialAfterNewCode) {
+  if (!CLOUD_ENABLED || !userCode) return;
+  const cloud = await cloudFetch();
+  if (!cloud || !cloud.profiles) return;
+  const local = JSON.parse(localStorage.getItem(PROFILES_KEY) || 'null');
+  const cloudTs = cloud.lastUpdated || 0;
+  const localTs = (local && local.lastUpdated) || 0;
+  if (!local || cloudTs > localTs || isInitialAfterNewCode) {
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(cloud));
+    // Refresh UI if data changed
+    const d = loadProfiles();
+    if (d.currentId && d.profiles[d.currentId]) {
+      const p = d.profiles[d.currentId];
+      state = {...defaultState(), ...(p.state || {})};
+      renderProfileBar();
+      const res = document.getElementById('results');
+      if (p.generated && res && !res.classList.contains('hidden')) {
+        // Re-render results with fresh data
+        generatePlanFromState();
+      }
+    }
+  } else if (localTs > cloudTs) {
+    cloudPush(local);
+  }
+}
+
+function bootstrapAfterCode(isNewCode) {
+  // 1. Show UI immediately from local cache
+  showInitialUI();
+  // 2. Sync with cloud in background (non-blocking)
+  if (CLOUD_ENABLED && userCode) {
+    syncFromCloudInBackground(isNewCode);
+  }
+}
+
+function bootstrap() {
   setSyncStatus(CLOUD_ENABLED ? 'loading' : 'offline');
   if (CLOUD_ENABLED && !userCode) {
     showUserCodeCard(false);
     return;
   }
-  await bootstrapAfterCode();
+  bootstrapAfterCode(false);
 }
 
 function changeUserCode() {
