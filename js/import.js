@@ -5,9 +5,9 @@
 function openImport() {
   openSheet(`
     <div class="sheet-head">
-      <div><h3>Importer l’ancienne FitCoach</h3>
-      <p class="muted small">Choisis le fichier de sauvegarde (FitCoach-sauvegarde-….json). Les exercices déjà importés ne sont pas ajoutés deux fois.</p></div>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
+      <div><h3>${t('importTitle')}</h3>
+      <p class="muted small">${t('importHint')}</p></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <input class="input" type="file" accept=".json,application/json" onchange="readImportFile(this.files[0])">
     <div id="import-choice"></div>`);
@@ -16,18 +16,18 @@ function openImport() {
 async function readImportFile(file) {
   if (!file) return;
   let json;
-  try { json = JSON.parse(await file.text()); } catch (e) { toast('Ce fichier n’est pas lisible'); return; }
+  try { json = JSON.parse(await file.text()); } catch (e) { toast(t('unreadable')); return; }
   const profiles = [];
   for (const user of Object.values(json.users || {})) {
     for (const p of Object.values(user.profiles || {})) {
       const logs = (p.feedback && p.feedback.logs) || [];
-      if (logs.length) profiles.push({ name: p.name || 'Sans nom', logs });
+      if (logs.length) profiles.push({ name: p.name || t('unnamed'), logs });
     }
   }
-  if (!profiles.length) { toast('Aucune séance trouvée dans ce fichier'); return; }
+  if (!profiles.length) { toast(t('noSessionsFile')); return; }
   window._importProfiles = profiles;
-  $('#import-choice').innerHTML = `<p class="pick-group">Quel profil importer ?</p>` + profiles.map((p, i) =>
-    `<button class="btn-line" style="margin-bottom:8px" onclick="runImport(${i})">${esc(p.name)} — ${plural(p.logs.length, 'exercice')}</button>`).join('');
+  $('#import-choice').innerHTML = `<p class="pick-group">${t('whichProfile')}</p>` + profiles.map((p, i) =>
+    `<button class="btn-line" style="margin-bottom:8px" onclick="runImport(${i})">${esc(p.name)} — ${tn('exercises', p.logs.length)}</button>`).join('');
 }
 
 function runImport(i) {
@@ -65,5 +65,5 @@ function runImport(i) {
     saveSession(s);
   }
   closeSheet();
-  toast(added ? `${plural(added, 'exercice')} importé${added > 1 ? 's' : ''}` : 'Tout était déjà importé');
+  toast(added ? tn('imported', added) : t('allImported'));
 }

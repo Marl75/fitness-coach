@@ -6,8 +6,8 @@
 <title>FitCoach</title>
 <meta name="description" content="Note tes séances de sport et suis ta régularité.">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png?v=2">
-<link rel="apple-touch-icon" href="icon-180.png?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png?v=3">
+<link rel="apple-touch-icon" href="icon-180.png?v=3">
 <meta name="theme-color" content="#0F1115">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<link rel="stylesheet" href="css/styles.css?v=2">
+<link rel="stylesheet" href="css/styles.css?v=3">
 </head>
 <body>
 
@@ -42,23 +42,24 @@
       <span class="brand-mark"><svg><use href="#i-logo"/></svg></span>
       <span class="brand-name">FitCoach</span>
     </div>
-    <p class="auth-sub">Note tes séances, suis ta régularité</p>
+    <p class="auth-sub" data-i18n="authSub">Note tes séances, suis ta régularité</p>
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="switchAuth('login')">Connexion</button>
-      <button class="auth-tab" id="tab-register" onclick="switchAuth('register')">Inscription</button>
+      <button class="auth-tab active" id="tab-login" onclick="switchAuth('login')" data-i18n="tabLogin">Connexion</button>
+      <button class="auth-tab" id="tab-register" onclick="switchAuth('register')" data-i18n="tabRegister">Inscription</button>
     </div>
     <div class="auth-msg hidden" id="auth-msg"></div>
     <form onsubmit="submitAuth(event)">
-      <label class="field"><span>E-mail</span>
-        <input class="input" type="email" id="auth-email" autocomplete="email" placeholder="ton@email.com" required>
+      <label class="field"><span data-i18n="email">E-mail</span>
+        <input class="input" type="email" id="auth-email" autocomplete="email" placeholder="ton@email.com" data-i18n-ph="emailPh" required>
       </label>
-      <label class="field"><span>Mot de passe</span>
-        <input class="input" type="password" id="auth-password" autocomplete="current-password" placeholder="6 caractères minimum" required>
+      <label class="field"><span data-i18n="password">Mot de passe</span>
+        <input class="input" type="password" id="auth-password" autocomplete="current-password" placeholder="6 caractères minimum" data-i18n-ph="passwordPh" required>
       </label>
-      <button class="btn-big" id="auth-submit" type="submit">Se connecter</button>
+      <button class="btn-big" id="auth-submit" type="submit" data-i18n="login">Se connecter</button>
     </form>
-    <button class="link" id="auth-forgot" onclick="forgotPassword()" style="display:block;margin:10px auto 0">Mot de passe oublié ?</button>
-    <p class="demo-note hidden" id="demo-note">Mode démo : n’importe quel e-mail et mot de passe fonctionnent. Les séances sont factices et restent sur cet appareil.</p>
+    <button class="link" id="auth-forgot" onclick="forgotPassword()" style="display:block;margin:10px auto 0" data-i18n="forgot">Mot de passe oublié ?</button>
+    <button class="link lang-link" onclick="toggleLanguage()" data-i18n="langSwitch">English</button>
+    <p class="demo-note hidden" id="demo-note" data-i18n="demoAuth">Mode démo : n’importe quel e-mail et mot de passe fonctionnent. Les séances sont factices et restent sur cet appareil.</p>
   </div>
 </div>
 
@@ -70,8 +71,8 @@
       <span class="brand-name">FitCoach</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <span class="sync hidden" id="sync">Hors ligne · gardé sur le téléphone</span>
-      <button class="icon-btn" onclick="openMenu()" aria-label="Mon compte"><svg><use href="#i-user"/></svg></button>
+      <span class="sync hidden" id="sync" data-i18n="offline">Hors ligne · gardé sur le téléphone</span>
+      <button class="icon-btn" onclick="openMenu()" aria-label="Mon compte" data-i18n-aria="account"><svg><use href="#i-user"/></svg></button>
     </div>
   </header>
   <main id="view"></main>
@@ -79,20 +80,21 @@
 
 <nav class="nav hidden" id="nav">
   <div class="nav-inner">
-    <button class="nav-btn" data-tab="today" onclick="setTab('today')"><svg><use href="#i-today"/></svg>Séance</button>
-    <button class="nav-btn" data-tab="track" onclick="setTab('track')"><svg><use href="#i-track"/></svg>Suivi</button>
+    <button class="nav-btn" data-tab="today" onclick="setTab('today')"><svg><use href="#i-today"/></svg><span data-i18n="navToday">Séance</span></button>
+    <button class="nav-btn" data-tab="track" onclick="setTab('track')"><svg><use href="#i-track"/></svg><span data-i18n="navTrack">Suivi</span></button>
   </div>
 </nav>
 
 <div class="backdrop hidden" id="backdrop" onclick="closeSheet()"></div>
 <div class="sheet hidden" id="sheet" role="dialog" aria-modal="true"></div>
 
-<script src="js/config.js?v=2"></script>
-<script src="js/exercises.js?v=2"></script>
-<script src="js/util.js?v=2"></script>
-<script src="js/data.js?v=2"></script>
-<script src="js/charts.js?v=2"></script>
-<script src="js/import.js?v=2"></script>
-<script src="js/app.js?v=2"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/i18n.js?v=3"></script>
+<script src="js/exercises.js?v=3"></script>
+<script src="js/util.js?v=3"></script>
+<script src="js/data.js?v=3"></script>
+<script src="js/charts.js?v=3"></script>
+<script src="js/import.js?v=3"></script>
+<script src="js/app.js?v=3"></script>
 </body>
 </html>

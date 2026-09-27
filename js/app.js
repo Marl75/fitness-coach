@@ -51,11 +51,11 @@ function updateEntry(date, entryId, fn) {
 // ===== PILE DE PLAQUES =====
 // Comme sur une machine : les plaques légères en haut, la goupille choisit le poids.
 const STEP = 2.5;
-const plateLabel = v => (v ? fmtNum(v) : 'Sans');
+const plateLabel = v => (v ? fmtNum(v) : t('plateNone'));
 function stackHtml(values, pin, action, cls = '') {
-  return `<div class="stack ${cls}" role="group" aria-label="Pile de plaques">${values.map(v => {
+  return `<div class="stack ${cls}" role="group" aria-label="${t('stackAria')}">${values.map(v => {
     const state = v === pin ? 'pin' : v < pin ? 'lifted' : '';
-    return `<button type="button" class="plate ${state}" data-v="${v}" onclick="${action}(${v})" aria-pressed="${v === pin}" aria-label="${v ? fmtNum(v) + ' kilos' : 'Sans poids'}">${plateLabel(v)}</button>`;
+    return `<button type="button" class="plate ${state}" data-v="${v}" onclick="${action}(${v})" aria-pressed="${v === pin}" aria-label="${v ? t('kilos', { w: fmtNum(v) }) : t('plateNoneAria')}">${plateLabel(v)}</button>`;
   }).join('')}</div>`;
 }
 function windowAround(w, n = 5) {
@@ -114,33 +114,31 @@ function renderToday() {
   let html = `
     <div class="page-head">
       <div class="head-row">
-        <span class="eyebrow">${isToday ? cap(fmtDay(UI.date)) : cap(relDay(UI.date))}</span>
+        <span class="eyebrow">${cap(fmtDay(UI.date))}</span>
         <span class="chrono" id="chrono">${chronoText()}</span>
       </div>
       <div class="head-row">
-        <h1>${isToday ? 'Séance du jour' : `Séance du ${esc(fmtShort(UI.date))}`}</h1>
-        <label class="date-chip">${icon('cal')}Autre jour
-          <input type="date" value="${UI.date}" max="${today}" onchange="goToDay(this.value)" aria-label="Choisir un autre jour">
-        </label>
+        <h1>${isToday ? t('todayTitle') : t('dayTitle', { date: esc(fmtShort(UI.date)) })}</h1>
+        <button class="date-chip" onclick="openDayPicker()" aria-label="${t('otherDayAria')}">${icon('cal')}${t('otherDay')}</button>
       </div>
     </div>`;
 
   if (!entries.length) {
     html += `
       <div class="empty">
-        <p class="empty-title">${isToday ? 'Pas encore de sport aujourd’hui.' : 'Pas de séance ce jour-là.'}</p>
-        <p class="muted">${last ? `Dernière séance ${relDay(last.id)}.` : 'Ta première séance commence ici.'}
-          ${isToday ? `<br>Cette semaine : ${weekCount} sur ${weeklyGoal()}.` : ''}</p>
-        <button class="btn-accent big" onclick="openPicker()">${icon('plus')}${isToday ? 'Commencer ma séance' : 'Ajouter un exercice'}</button>
+        <p class="empty-title">${isToday ? t('noSportToday') : t('noSessionDay')}</p>
+        <p class="muted">${last ? t('lastSession', { when: relDay(last.id) }) : t('firstSession')}
+          ${isToday ? `<br>${t('weekProgress', { n: weekCount, goal: weeklyGoal() })}` : ''}</p>
+        <button class="btn-accent big" onclick="openPicker()">${icon('plus')}${isToday ? t('startSession') : t('addExercise')}</button>
       ${quickFavs()}
       </div>`;
   } else {
     html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e)).join('')}</div>
-      <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current ? 'Ajouter un autre exercice' : 'Exercice suivant'}</button>
+      <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current ? t('addAnother') : t('nextExercise')}</button>
       ${quickFavs()}
       ${entries.some(entryDone) ? `<p class="muted small center foot">${sessionFoot(entries)}</p>` : ''}`;
   }
-  if (!isToday) html += `<p class="center"><button class="link" onclick="goToDay('${today}')">Revenir à aujourd’hui</button></p>`;
+  if (!isToday) html += `<p class="center"><button class="link" onclick="goToDay('${today}')">${t('backToday')}</button></p>`;
   $('#view').innerHTML = html;
 }
 
@@ -148,23 +146,23 @@ function renderToday() {
 function quickFavs() {
   const favs = favorites().map(findExercise);
   if (!favs.length) return '';
-  return `<div class="quick"><p class="label">Favoris</p><div class="chips">${favs.map(ex =>
-    `<button class="chip" onclick="pickExercise('${esc(ex.id)}')">${icon('star')}${esc(ex.name)}</button>`).join('')}</div></div>`;
+  return `<div class="quick"><p class="label">${t('favorites')}</p><div class="chips">${favs.map(ex =>
+    `<button class="chip" onclick="pickExercise('${esc(ex.id)}')">${icon('star')}${esc(exLabel(ex))}</button>`).join('')}</div></div>`;
 }
 
 function sessionFoot(entries) {
   const done = entries.filter(entryDone);
   const sets = done.reduce((t, e) => t + (e.kind === 'sets' ? doneSets(e).length : 0), 0);
   const min = done.reduce((t, e) => t + (e.kind !== 'sets' && e.duration ? e.duration : 0), 0);
-  return [plural(done.length, 'exercice'), sets && plural(sets, 'série'), min && `${min} min de cardio / cours`].filter(Boolean).join(' · ');
+  return [tn('exercises', done.length), sets && tn('sets', sets), min && t('cardioMin', { n: min })].filter(Boolean).join(' · ');
 }
 
 function entryRow(e) {
   const pi = pendingIndex(e);
-  const sub = pi >= 0 && !doneSets(e).length ? `${plural(e.sets.length, 'série')} prévue${e.sets.length > 1 ? 's' : ''}` : entrySummary(e);
+  const sub = pi >= 0 && !doneSets(e).length ? tn('plannedSets', e.sets.length) : entrySummary(e);
   const mark = entryDone(e) && pi < 0 ? `<span class="row-mark">${icon('check')}</span>` : icon('chev');
   return `<button class="row" onclick="openEntry('${esc(e.id)}')">${miniStack(e)}
-    <span class="row-main"><span class="row-name">${esc(e.name)}</span><span class="row-sub">${esc(sub)}</span>
+    <span class="row-main"><span class="row-name">${esc(entryName(e))}</span><span class="row-sub">${esc(sub)}</span>
     ${e.note ? `<span class="row-note">${esc(e.note)}</span>` : ''}</span>${mark}</button>`;
 }
 
@@ -174,19 +172,19 @@ function currentCard(e) {
   const set = e.sets[i];
   const w = set.weight || 0;
   const id = esc(e.id);
-  return `<section class="now" aria-label="Exercice en cours">
+  return `<section class="now" aria-label="${t('currentAria')}">
     ${stackHtml(windowAround(w), w, `pinCurrent.bind(null,'${id}')`, 'compact')}
     <div class="now-main">
-      <div class="eyebrow">Série ${i + 1} sur ${e.sets.length}</div>
-      <h2 class="now-name">${esc(e.name)}</h2>
-      <button class="now-value" onclick="openSet('${id}',${i})" aria-label="Changer les chiffres de la série">
-        <span class="serif">${set.reps || '–'}</span><span class="now-unit">× ${w ? fmtNum(w) + ' kg' : 'sans poids'}</span>
+      <div class="eyebrow">${t('setOf', { i: i + 1, n: e.sets.length })}</div>
+      <h2 class="now-name">${esc(entryName(e))}</h2>
+      <button class="now-value" onclick="openSet('${id}',${i})" aria-label="${t('changeNumbers')}">
+        <span class="serif">${set.reps || '–'}</span><span class="now-unit">× ${w ? fmtNum(w) + ' kg' : t('noWeight')}</span>
       </button>
-      <button class="btn-accent" onclick="finishSet('${id}')">${icon('check')}Série faite</button>
+      <button class="btn-accent" onclick="finishSet('${id}')">${icon('check')}${t('setDone')}</button>
       <div class="now-links">
-        <button onclick="addPlannedSet('${id}')">+ série</button>
-        <button onclick="finishAll('${id}')">Tout valider</button>
-        <button onclick="stopEntry('${id}')">Arrêter là</button>
+        <button onclick="addPlannedSet('${id}')">${t('addSetShort')}</button>
+        <button onclick="finishAll('${id}')">${t('validateAll')}</button>
+        <button onclick="stopEntry('${id}')">${t('stopHere')}</button>
       </div>
     </div>
   </section>`;
@@ -201,11 +199,11 @@ function pinCurrent(entryId, v) {
 }
 function finishSet(entryId) {
   const e = updateEntry(UI.date, entryId, e => { e.sets[pendingIndex(e)].done = true; });
-  if (e) toast(pendingIndex(e) < 0 ? 'Exercice terminé' : `Série ${doneSets(e).length} faite`);
+  if (e) toast(pendingIndex(e) < 0 ? t('exerciseDone') : t('setNDone', { n: doneSets(e).length }));
 }
 function finishAll(entryId) {
   updateEntry(UI.date, entryId, e => e.sets.forEach(s => { s.done = true; }));
-  toast('Exercice terminé');
+  toast(t('exerciseDone'));
 }
 function addPlannedSet(entryId) {
   updateEntry(UI.date, entryId, e => { e.sets.push({ ...e.sets[e.sets.length - 1], done: false }); });
@@ -230,7 +228,7 @@ function toggleFav(id) {
   const f = prefs().favorites || [];
   const on = !f.includes(id);
   savePrefs({ favorites: on ? [...f, id] : f.filter(x => x !== id) });
-  toast(on ? 'Ajouté aux favoris' : 'Retiré des favoris');
+  toast(on ? t('addedFav') : t('removedFav'));
 }
 
 // ===== DOUBLONS =====
@@ -256,7 +254,7 @@ function similarExercises(name) {
   const nw = words(name);
   const scored = allExercises().map(e => {
     let score = 0;
-    for (const cand of [e.name, ...(e.aliases || [])]) {
+    for (const cand of [e.name, e.en, ...(e.aliases || [])].filter(Boolean)) {
       const c = simple(cand);
       if (c === n) score = Math.max(score, 100);
       else if (c.length >= 4 && n.length >= 4 && (c.includes(n) || n.includes(c))) score = Math.max(score, 80);
@@ -277,11 +275,11 @@ function pickerFilters() {
   const hasCustom = Data.exercises.length > 0;
   const hasRecent = recentExerciseIds(1).length > 0;
   return [
-    { id: 'fav', label: 'Favoris' },
-    hasRecent && { id: 'recent', label: 'Récents' },
-    { id: 'all', label: 'Tous' },
+    { id: 'fav', label: t('favorites') },
+    hasRecent && { id: 'recent', label: t('f_recent') },
+    { id: 'all', label: t('f_all') },
     ...GROUPS.filter(g => g.id !== 'custom').map(g => ({ id: g.id, label: g.label })),
-    hasCustom && { id: 'custom', label: 'Mes exercices' },
+    hasCustom && { id: 'custom', label: t('g_custom') },
   ].filter(Boolean);
 }
 function defaultFilter() {
@@ -302,10 +300,10 @@ function openPicker() {
   UI.search = '';
   UI.filter = defaultFilter();
   openSheet(`
-    <div class="sheet-head"><h3>Quel exercice ?</h3>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button></div>
-    <input class="input" type="search" placeholder="Rechercher…" oninput="UI.search=this.value;renderPickerList()" aria-label="Rechercher un exercice">
-    <div class="chips" id="picker-chips" role="tablist" aria-label="Catégories"></div>
+    <div class="sheet-head"><h3>${t('whichExercise')}</h3>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button></div>
+    <input class="input" type="search" placeholder="${t('search')}" oninput="UI.search=this.value;renderPickerList()" aria-label="${t('searchAria')}">
+    <div class="chips" id="picker-chips" role="tablist" aria-label="${t('categories')}"></div>
     <div id="picker-list"></div>`, renderPickerList);
 }
 
@@ -314,11 +312,11 @@ function pickItem(ex) {
   const sub = last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : KINDS[ex.kind].label;
   const fav = isFav(ex.id);
   return `<div class="pick">
-    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(ex.name)}</span><span class="pick-sub">${esc(sub)}</span></button>
-    <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? 'Retirer des favoris' : 'Ajouter aux favoris'} : ${esc(ex.name)}">${icon('star')}</button>
+    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(exLabel(ex))}</span><span class="pick-sub">${esc(sub)}</span></button>
+    <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? t('favOn') : t('favOff')} : ${esc(exLabel(ex))}">${icon('star')}</button>
   </div>`;
 }
-const byName = (a, b) => a.name.localeCompare(b.name, 'fr');
+const byName = (a, b) => exLabel(a).localeCompare(exLabel(b), currentLang);
 
 function renderPickerList() {
   const box = $('#picker-list');
@@ -331,18 +329,18 @@ function renderPickerList() {
   if (q) {
     // Recherche dans tout le catalogue, y compris les autres noms (anglais…)
     const nq = simple(q);
-    const found = all.filter(e => [e.name, ...(e.aliases || [])].some(n => simple(n).includes(nq)))
+    const found = all.filter(e => [e.name, e.en, ...(e.aliases || [])].filter(Boolean).some(n => simple(n).includes(nq)))
       .sort((a, b) => (isFav(b.id) - isFav(a.id)) || byName(a, b));
-    html += found.length ? found.map(pickItem).join('') : `<p class="muted small empty-list">Aucun exercice ne correspond à « ${esc(q)} ».</p>`;
-    if (!found.some(e => simple(e.name) === nq)) {
-      html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}Créer « ${esc(q)} »</button>`;
+    html += found.length ? found.map(pickItem).join('') : `<p class="muted small empty-list">${t('noMatch', { q: esc(q) })}</p>`;
+    if (!found.some(e => simple(exLabel(e)) === nq)) {
+      html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}${t('createQ', { q: esc(q) })}</button>`;
     }
   } else {
     const f = UI.filter;
     if (f === 'fav') {
       const favs = favorites().map(findExercise);
       html += favs.length ? favs.map(pickItem).join('')
-        : `<p class="muted small empty-list">Pas encore de favori. Touche l’étoile ${icon('star')} à côté d’un exercice pour le retrouver ici, et en raccourci sur l’écran Séance.</p>`;
+        : `<p class="muted small empty-list">${t('noFavs', { star: icon('star') })}</p>`;
     } else if (f === 'recent') {
       html += recentExerciseIds(12).map(findExercise).filter(Boolean).map(pickItem).join('');
     } else if (f === 'all') {
@@ -355,7 +353,7 @@ function renderPickerList() {
     } else {
       html += all.filter(e => e.group === f).sort(byName).map(pickItem).join('');
     }
-    html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}Créer un exercice</button>`;
+    html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}${t('createExercise')}</button>`;
   }
   box.innerHTML = html;
 }
@@ -367,19 +365,19 @@ function openCreate() {
   createConfirm = false;
   const groupFor = ['upper', 'lower', 'core', 'cardio', 'class'];
   openSheet(`
-    <div class="sheet-head"><h3>Nouvel exercice</h3>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button></div>
-    <label class="field"><span>Nom</span>
-      <input class="input" id="new-name" value="${esc(name)}" maxlength="60" placeholder="ex. Presse à épaules" oninput="createConfirm=false;renderSimilar()" autocomplete="off"></label>
+    <div class="sheet-head"><h3>${t('newExercise')}</h3>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button></div>
+    <label class="field"><span>${t('name')}</span>
+      <input class="input" id="new-name" value="${esc(name)}" maxlength="60" placeholder="${t('namePh')}" oninput="createConfirm=false;renderSimilar()" autocomplete="off"></label>
     <div id="similar"></div>
-    <p class="field"><span>Ce que tu veux noter</span></p>
+    <p class="field"><span>${t('whatToLog')}</span></p>
     <div class="kinds" role="radiogroup">${Object.entries(KINDS).map(([k, v], i) => `
       <button class="kind${i === 0 ? ' active' : ''}" data-kind="${k}" role="radio" aria-checked="${i === 0}" onclick="selectKind(this)">
         <span class="kind-label">${v.label}</span><span class="kind-hint">${v.hint}</span></button>`).join('')}</div>
-    <p class="field"><span>Catégorie (pour le retrouver dans les filtres)</span></p>
+    <p class="field"><span>${t('categoryHint')}</span></p>
     <div class="chips wrap" id="new-group" role="radiogroup">${GROUPS.filter(g => groupFor.includes(g.id)).map(g =>
       `<button class="chip" data-g="${g.id}" role="radio" aria-checked="false" onclick="selectGroup(this)">${g.label}</button>`).join('')}</div>
-    <button class="btn-accent big" id="create-btn" onclick="createExercise()">Créer et commencer</button>`);
+    <button class="btn-accent big" id="create-btn" onclick="createExercise()">${t('createStart')}</button>`);
   renderSimilar();
   if (!name) $('#new-name').focus();
 }
@@ -395,14 +393,14 @@ function renderSimilar() {
   if (!box) return;
   const sim = similarExercises($('#new-name').value);
   const btn = $('#create-btn');
-  if (btn) btn.textContent = createConfirm ? 'Créer quand même' : 'Créer et commencer';
+  if (btn) btn.textContent = createConfirm ? t('createAnyway') : t('createStart');
   box.innerHTML = !sim.length ? '' : `
     <div class="similar${createConfirm ? ' warn' : ''}">
-      <p class="similar-title">${sim[0].score === 100 ? 'Cet exercice existe déjà :' : 'Il existe peut-être déjà :'}</p>
+      <p class="similar-title">${sim[0].score === 100 ? t('existsAlready') : t('maybeExists')}</p>
       ${sim.map(({ e }) => `<button class="similar-item" onclick="pickExercise('${esc(e.id)}')">
-        <span><b>${esc(e.name)}</b><span class="muted small"> · ${esc((GROUPS.find(g => g.id === e.group) || {}).label || '')}</span></span>
-        <span class="similar-use">Utiliser</span></button>`).join('')}
-      ${createConfirm ? '<p class="small">Si c’est bien un autre exercice, touche « Créer quand même ».</p>' : ''}
+        <span><b>${esc(exLabel(e))}</b><span class="muted small"> · ${esc((GROUPS.find(g => g.id === e.group) || {}).label || '')}</span></span>
+        <span class="similar-use">${t('use')}</span></button>`).join('')}
+      ${createConfirm ? `<p class="small">${t('confirmCreate')}</p>` : ''}
     </div>`;
 }
 function createExercise() {
@@ -410,7 +408,7 @@ function createExercise() {
   if (!name) { $('#new-name').focus(); return; }
   const sim = similarExercises(name);
   if (sim.length && sim[0].score === 100) {
-    toast('Cet exercice existe déjà');
+    toast(t('existsToast'));
     pickExercise(sim[0].e.id);
     return;
   }
@@ -424,7 +422,7 @@ function createExercise() {
   const ex = { id: 'c-' + Date.now().toString(36), name, kind: $('.kind.active').dataset.kind, createdAt: Date.now() };
   if (g) ex.group = g.dataset.g;
   saveCustomExercise(ex);
-  toast(`« ${name} » créé`);
+  toast(t('created', { name }));
   pickExercise(ex.id, { ...ex, group: ex.group || 'custom', custom: true });
 }
 
@@ -459,25 +457,25 @@ function openSet(entryId, idx) {
   const values = Array.from({ length: 81 }, (_, i) => i * STEP); // 0 à 200 kg
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">Série ${idx + 1} sur ${e.sets.length}</div><h3>${esc(e.name)}</h3></div>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
+      <div><div class="eyebrow">${t('setOf', { i: idx + 1, n: e.sets.length })}</div><h3>${esc(entryName(e))}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <div class="set-editor">
       <div class="set-col">
-        <p class="label">Poids · touche une plaque</p>
+        <p class="label">${t('weightHint')}</p>
         <div class="stack-scroll" id="set-stack">${stackHtml(values, setDraft.weight, 'pinSet')}</div>
       </div>
       <div class="set-col reps-col">
-        <p class="label">Répétitions</p>
-        <button class="round-btn" onclick="stepReps(1)" aria-label="Une répétition de plus">${icon('plus')}</button>
-        <input class="reps-input serif" id="reps" inputmode="numeric" value="${setDraft.reps ?? ''}" placeholder="0" onchange="setDraft.reps=numOrNull(this.value)" onfocus="this.select()" aria-label="Répétitions">
-        <button class="round-btn" onclick="stepReps(-1)" aria-label="Une répétition de moins">${icon('minus')}</button>
-        <p class="weight-read" id="weight-read">${setDraft.weight ? fmtNum(setDraft.weight) + ' kg' : 'sans poids'}</p>
+        <p class="label">${t('reps')}</p>
+        <button class="round-btn" onclick="stepReps(1)" aria-label="${t('repPlus')}">${icon('plus')}</button>
+        <input class="reps-input serif" id="reps" inputmode="numeric" value="${setDraft.reps ?? ''}" placeholder="0" onchange="setDraft.reps=numOrNull(this.value)" onfocus="this.select()" aria-label="${t('reps')}">
+        <button class="round-btn" onclick="stepReps(-1)" aria-label="${t('repMinus')}">${icon('minus')}</button>
+        <p class="weight-read" id="weight-read">${setDraft.weight ? fmtNum(setDraft.weight) + ' kg' : t('noWeight')}</p>
       </div>
     </div>
-    <p class="muted small">${last ? `La dernière fois (${relDay(last.date)}) : ${esc(entrySummary(last.entry))}` : 'Première fois sur cet exercice.'}</p>
-    <button class="btn-accent big" onclick="saveSet()">${setDraft.wasDone ? 'Enregistrer' : 'Valider la série'}</button>
-    ${setDraft.wasDone ? `<button class="link-danger" onclick="deleteSet()">Supprimer cette série</button>` : ''}`);
+    <p class="muted small">${last ? t('lastTime', { when: relDay(last.date), what: esc(entrySummary(last.entry)) }) : t('firstTimeEx')}</p>
+    <button class="btn-accent big" onclick="saveSet()">${setDraft.wasDone ? t('save') : t('validateSet')}</button>
+    ${setDraft.wasDone ? `<button class="link-danger" onclick="deleteSet()">${t('deleteSet')}</button>` : ''}`);
   const pin = $('#set-stack .plate.pin');
   if (pin) pin.scrollIntoView({ block: 'center' });
 }
@@ -489,7 +487,7 @@ function pinSet(v) {
     p.classList.toggle('lifted', pv < v);
     p.setAttribute('aria-pressed', pv === v);
   });
-  $('#weight-read').textContent = v ? fmtNum(v) + ' kg' : 'sans poids';
+  $('#weight-read').textContent = v ? fmtNum(v) + ' kg' : t('noWeight');
 }
 function stepReps(d) {
   setDraft.reps = Math.max(0, (setDraft.reps || 0) + d) || null;
@@ -510,12 +508,12 @@ function saveSet() {
     e.sets[idx] = { reps, weight: weight || null, done: true };
   });
   closeSheet();
-  toast(wasDone ? 'Modifié' : 'Série faite');
+  toast(wasDone ? t('modified') : t('setDone'));
 }
 function deleteSet() {
   updateEntry(UI.date, setDraft.entryId, e => { e.sets.splice(setDraft.idx, 1); });
   closeSheet();
-  toast('Série supprimée');
+  toast(t('setDeleted'));
 }
 
 // ===== DÉTAIL D'UN EXERCICE DE LA SÉANCE =====
@@ -530,66 +528,66 @@ function openEntry(entryId) {
   const id = esc(e.id);
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${esc(entrySummary(e))}</div><h3>${esc(e.name)}</h3></div>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
+      <div><div class="eyebrow">${esc(entrySummary(e))}</div><h3>${esc(entryName(e))}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <div class="set-list">${e.sets.map((s, i) => `
       <button class="set-line" onclick="openSet('${id}',${i})">
         <span class="set-n">${i + 1}</span>
-        <span class="set-val">${s.reps ?? '–'} × ${s.weight ? fmtNum(s.weight) + ' kg' : 'sans poids'}</span>
-        ${s.done === false ? '<span class="muted small">prévue</span>' : `<span class="row-mark">${icon('check')}</span>`}
+        <span class="set-val">${s.reps ?? '–'} × ${s.weight ? fmtNum(s.weight) + ' kg' : t('noWeight')}</span>
+        ${s.done === false ? `<span class="muted small">${t('planned')}</span>` : `<span class="row-mark">${icon('check')}</span>`}
       </button>`).join('')}</div>
-    <button class="btn-outline" onclick="addPlannedSet('${id}');closeSheet()">${icon('plus')}Ajouter une série</button>
-    <label class="field" style="margin-top:16px"><span>Note</span>
-      <textarea class="input" id="entry-note" rows="2" maxlength="300" placeholder="Réglage de la machine, ressenti…">${esc(e.note || '')}</textarea></label>
-    <button class="btn-accent big" onclick="saveEntryNote('${id}')">Enregistrer</button>
-    <button class="link-danger" onclick="deleteEntry('${id}')">Supprimer cet exercice</button>`);
+    <button class="btn-outline" onclick="addPlannedSet('${id}');closeSheet()">${icon('plus')}${t('addSet')}</button>
+    <label class="field" style="margin-top:16px"><span>${t('note')}</span>
+      <textarea class="input" id="entry-note" rows="2" maxlength="300" placeholder="${t('notePh')}">${esc(e.note || '')}</textarea></label>
+    <button class="btn-accent big" onclick="saveEntryNote('${id}')">${t('save')}</button>
+    <button class="link-danger" onclick="deleteEntry('${id}')">${t('deleteExercise')}</button>`);
 }
 function saveEntryNote(entryId) {
   const note = $('#entry-note').value.trim();
   updateEntry(UI.date, entryId, e => { e.note = note; });
   closeSheet();
-  toast('Enregistré');
+  toast(t('saved'));
 }
 function deleteEntry(entryId) {
   const e = (sessionOf(UI.date).entries || []).find(x => x.id === entryId);
-  if (!e || !confirm(`Supprimer « ${e.name} » de cette séance ?`)) return;
+  if (!e || !confirm(t('confirmDelete', { name: entryName(e) }))) return;
   const s = cloneSession(UI.date);
   s.entries = s.entries.filter(x => x.id !== entryId);
   saveSession(s);
   draft = null;
   closeSheet();
-  toast('Supprimé');
+  toast(t('deleted'));
 }
 
 // ===== CARDIO & COURS : DURÉE (ET DISTANCE) =====
 const stepper = (value, onStep, onSet, placeholder, label) => `
   <div class="stepper">
-    <button type="button" onclick="${onStep}(-1)" aria-label="Moins">${icon('minus')}</button>
+    <button type="button" onclick="${onStep}(-1)" aria-label="${t('minus')}">${icon('minus')}</button>
     <input class="serif" inputmode="decimal" value="${value === null || value === undefined ? '' : fmtNum(value)}" placeholder="${placeholder}" onchange="${onSet}(this.value)" onfocus="this.select()" aria-label="${label}">
-    <button type="button" onclick="${onStep}(1)" aria-label="Plus">${icon('plus')}</button>
+    <button type="button" onclick="${onStep}(1)" aria-label="${t('plus')}">${icon('plus')}</button>
   </div>`;
 
 function openTimeEditor(last) {
   const isNew = !draft.entryId;
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${KINDS[draft.kind].label}</div><h3>${esc(draft.name)}</h3></div>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
+      <div><div class="eyebrow">${KINDS[draft.kind].label}</div><h3>${esc(entryName(draft))}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <div id="editor-body"></div>
-    <p class="muted small">${last ? `La dernière fois (${relDay(last.date)}) : ${esc(entrySummary(last.entry))}` : 'Première fois !'}</p>
-    <textarea class="input" id="draft-note" rows="1" maxlength="300" placeholder="Note (facultatif)">${esc(draft.note || '')}</textarea>
-    <button class="btn-accent big" onclick="saveDraft()">${isNew ? 'C’est fait' : 'Enregistrer'}</button>
-    ${isNew ? '' : `<button class="link-danger" onclick="deleteEntry('${esc(draft.entryId)}')">Supprimer cet exercice</button>`}`);
+    <p class="muted small">${last ? t('lastTime', { when: relDay(last.date), what: esc(entrySummary(last.entry)) }) : t('firstTime')}</p>
+    <textarea class="input" id="draft-note" rows="1" maxlength="300" placeholder="${t('noteOptional')}">${esc(draft.note || '')}</textarea>
+    <button class="btn-accent big" onclick="saveDraft()">${isNew ? t('done') : t('save')}</button>
+    ${isNew ? '' : `<button class="link-danger" onclick="deleteEntry('${esc(draft.entryId)}')">${t('deleteExercise')}</button>`}`);
   renderEditorBody();
 }
 function renderEditorBody() {
   const box = $('#editor-body');
   if (!box) return;
   box.innerHTML = `
-    <div class="solo"><span>Durée (minutes)</span>${stepper(draft.duration, "stepField.bind(null,'duration',5)", "setField.bind(null,'duration')", '0', 'Durée en minutes')}</div>
-    ${draft.kind === 'cardio' ? `<div class="solo"><span>Distance (km, facultatif)</span>${stepper(draft.distance, "stepField.bind(null,'distance',0.5)", "setField.bind(null,'distance')", '—', 'Distance en kilomètres')}</div>` : ''}`;
+    <div class="solo"><span>${t('durationMin')}</span>${stepper(draft.duration, "stepField.bind(null,'duration',5)", "setField.bind(null,'duration')", '0', t('durationAria'))}</div>
+    ${draft.kind === 'cardio' ? `<div class="solo"><span>${t('distanceKm')}</span>${stepper(draft.distance, "stepField.bind(null,'distance',0.5)", "setField.bind(null,'distance')", '—', t('distanceAria'))}</div>` : ''}`;
 }
 function stepField(field, step, dir) {
   const cur = draft[field];
@@ -608,7 +606,7 @@ function saveDraft() {
   saveSession(s);
   draft = null;
   closeSheet();
-  toast(i >= 0 ? 'Modifié' : 'Enregistré');
+  toast(i >= 0 ? t('modified') : t('saved'));
 }
 
 // ===== ONGLET SUIVI =====
@@ -616,18 +614,18 @@ function renderTrack() {
   const now = new Date();
   if (!UI.month) UI.month = new Date(now.getFullYear(), now.getMonth(), 1);
   const month = sessionsInRange(isoDate(new Date(now.getFullYear(), now.getMonth(), 1)), isoDate());
-  const monthName = now.toLocaleDateString('fr-FR', { month: 'long' });
+  const monthName = now.toLocaleDateString(locale(), { month: 'long' });
 
   $('#view').innerHTML = `
     <div class="page-head">
       <div class="head-row"><span class="eyebrow">${cap(monthName)}</span></div>
-      <h1>${month ? `${plural(month, 'séance')}, empilée${month > 1 ? 's' : ''}` : 'Pas encore de séance ce mois-ci'}</h1>
-      <p class="muted small">Une plaque par séance, une colonne par semaine (en vert : cette semaine). Objectif : ${weeklyGoal()} par semaine, en pointillés.</p>
+      <h1>${month ? tn('sessionsStacked', month) : t('noSessionMonth')}</h1>
+      <p class="muted small">${t('trackHint', { goal: weeklyGoal() })}</p>
     </div>
     <section class="card">${weeksHtml()}</section>
     <section class="card">${calendarHtml()}</section>
     <section class="card">
-      <h2 class="card-title">Par exercice</h2>
+      <h2 class="card-title">${t('byExercise')}</h2>
       ${exerciseListHtml()}
     </section>`;
 }
@@ -648,65 +646,81 @@ function weeksHtml() {
     const plates = Array.from({ length: slots }, (_, k) =>
       `<span class="wplate ${k < n ? 'full' : 'goal'}"></span>`).join('');
     const label = `${mon.getDate()}/${mon.getMonth() + 1}`;
-    cols.push(`<div class="wcol${i === 0 ? ' now' : ''}" role="img" aria-label="${i === 0 ? 'Cette semaine' : 'Semaine du ' + fmtShort(isoDate(mon))} : ${n ? plural(n, 'séance') : 'aucune séance'}">
+    cols.push(`<div class="wcol${i === 0 ? ' now' : ''}" role="img" aria-label="${i === 0 ? t('thisWeek') : t('weekOf', { date: fmtShort(isoDate(mon)) })} : ${n ? tn('workouts', n) : t('noWorkout')}">
       <span class="wcount">${n || ''}</span><div class="wstack">${plates}</div><span class="wlabel">${label}</span></div>`);
   }
   return `<div class="weeks">${cols.join('')}</div>`;
 }
 
-function calendarHtml() {
+// Calendrier d'un mois : jours de sport en vert. Sert au Suivi et au choix « Autre jour ».
+function calendarGrid(m, { selected, action, prev, next }) {
   const today = isoDate();
-  const m = UI.month;
   const y = m.getFullYear(), mo = m.getMonth();
   const daysInMonth = new Date(y, mo + 1, 0).getDate();
-  const start = mondayOf(m);
   const end = addDays(mondayOf(new Date(y, mo, daysInMonth)), 6);
   const done = new Set(activeSessions().map(s => s.id));
   const isCurrent = y === new Date().getFullYear() && mo === new Date().getMonth();
   let cells = '';
-  for (let d = start; d <= end; d = addDays(d, 1)) {
+  for (let d = mondayOf(m); d <= end; d = addDays(d, 1)) {
     const id = isoDate(d);
     if (d.getMonth() !== mo) { cells += `<span class="cal-cell out"></span>`; continue; }
-    const cls = ['cal-cell', done.has(id) && 'done', id === today && 'today', id > today && 'future', id === UI.selDay && 'sel'].filter(Boolean).join(' ');
-    const label = `${fmtDay(id)}${done.has(id) ? ' : séance' : ''}`;
+    const cls = ['cal-cell', done.has(id) && 'done', id === today && 'today', id > today && 'future', id === selected && 'sel'].filter(Boolean).join(' ');
+    const label = `${fmtDay(id)}${done.has(id) ? t('workoutMark') : ''}`;
     cells += id > today
       ? `<span class="${cls}">${d.getDate()}</span>`
-      : `<button class="${cls}" onclick="selectDay('${id}')" aria-label="${esc(label)}">${d.getDate()}</button>`;
+      : `<button class="${cls}" onclick="${action}('${id}')" aria-label="${esc(label)}">${d.getDate()}</button>`;
   }
   const lastDay = isCurrent ? new Date().getDate() : daysInMonth;
   const active = [...done].filter(id => id.startsWith(`${y}-${pad(mo + 1)}`)).length;
-  const monthName = m.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const monthName = m.toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
   return `
     <div class="cal-head">
-      <button class="icon-btn" onclick="shiftMonth(-1)" aria-label="Mois précédent">${icon('prev')}</button>
+      <button class="icon-btn" onclick="${prev}" aria-label="${t('prevMonth')}">${icon('prev')}</button>
       <h2 class="card-title">${cap(monthName)}</h2>
-      <button class="icon-btn" onclick="shiftMonth(1)" aria-label="Mois suivant" ${isCurrent ? 'disabled' : ''}>${icon('chev')}</button>
+      <button class="icon-btn" onclick="${next}" aria-label="${t('nextMonth')}" ${isCurrent ? 'disabled' : ''}>${icon('chev')}</button>
     </div>
-    <div class="cal-grid">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => `<span class="cal-dow">${d}</span>`).join('')}${cells}</div>
+    <div class="cal-grid">${[...t('dow')].map(d => `<span class="cal-dow">${d}</span>`).join('')}${cells}</div>
     <div class="cal-foot">
-      <span><span class="legend-dot on"></span>${plural(active, 'jour')} de sport</span>
-      <span><span class="legend-dot"></span>${Math.max(0, lastDay - active)} sans sport</span>
-    </div>
-    ${dayDetailHtml()}`;
+      <span><span class="legend-dot on"></span>${tn('daysSport', active)}</span>
+      <span><span class="legend-dot"></span>${t('daysRest', { n: Math.max(0, lastDay - active) })}</span>
+    </div>`;
+}
+const monthStart = d => new Date(d.getFullYear(), d.getMonth(), 1);
+const shiftedMonth = (m, n) => { const x = new Date(m.getFullYear(), m.getMonth() + n, 1); return x > new Date() ? m : x; };
+
+function calendarHtml() {
+  return calendarGrid(UI.month, { selected: UI.selDay, action: 'selectDay', prev: 'shiftMonth(-1)', next: 'shiftMonth(1)' }) + dayDetailHtml();
 }
 
+// « Autre jour » : même calendrier, pour aller noter ou revoir une séance passée
+function openDayPicker() {
+  UI.pickMonth = monthStart(toDate(UI.date));
+  openSheet(`
+    <div class="sheet-head"><h3>${t('otherDay')}</h3>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button></div>
+    <div id="day-picker"></div>`, renderDayPicker);
+}
+function renderDayPicker() {
+  const box = $('#day-picker');
+  if (box) box.innerHTML = calendarGrid(UI.pickMonth, { selected: UI.date, action: 'goToDay', prev: 'pickMonthShift(-1)', next: 'pickMonthShift(1)' });
+}
+function pickMonthShift(n) { UI.pickMonth = shiftedMonth(UI.pickMonth, n); renderDayPicker(); }
+
 function dayDetailHtml() {
-  if (!UI.selDay) return `<p class="muted small cal-hint">Touche un jour pour voir ce que tu as fait.</p>`;
+  if (!UI.selDay) return `<p class="muted small cal-hint">${t('tapDay')}</p>`;
   const entries = ((sessionOf(UI.selDay) || {}).entries || []).filter(entryDone);
   return `<div class="day-detail">
     <p class="day-detail-title">${esc(cap(fmtDay(UI.selDay)))}</p>
     ${entries.length
-      ? entries.map(e => `<div class="day-line"><span>${esc(e.name)}</span><span>${esc(entrySummary(e))}</span></div>`).join('')
-        + `<button class="btn-outline" onclick="goToDay('${UI.selDay}')">Voir ou modifier la séance</button>`
-      : `<p class="muted small">Pas de sport ce jour-là.</p><button class="btn-outline" onclick="goToDay('${UI.selDay}')">Ajouter une séance ce jour-là</button>`}
+      ? entries.map(e => `<div class="day-line"><span>${esc(entryName(e))}</span><span>${esc(entrySummary(e))}</span></div>`).join('')
+        + `<button class="btn-outline" onclick="goToDay('${UI.selDay}')">${t('viewEdit')}</button>`
+      : `<p class="muted small">${t('noSportDay')}</p><button class="btn-outline" onclick="goToDay('${UI.selDay}')">${t('addThatDay')}</button>`}
   </div>`;
 }
 
 function selectDay(id) { UI.selDay = UI.selDay === id ? null : id; render(); }
 function shiftMonth(n) {
-  const m = new Date(UI.month.getFullYear(), UI.month.getMonth() + n, 1);
-  if (m > new Date()) return;
-  UI.month = m;
+  UI.month = shiftedMonth(UI.month, n);
   UI.selDay = null;
   render();
 }
@@ -716,10 +730,10 @@ function metricFor(kind, hist) {
   if (kind === 'sets') {
     const withWeight = hist.some(h => doneSets(h.entry).some(s => s.weight));
     return withWeight
-      ? { title: 'Charge max (kg)', fmt: v => `${fmtNum(v)} kg`, get: e => maxWeight(e) || null }
-      : { title: 'Répétitions au total', fmt: v => `${fmtNum(v)} rép.`, get: e => doneSets(e).reduce((t, s) => t + (s.reps || 0), 0) || null };
+      ? { title: t('maxLoad'), fmt: v => `${fmtNum(v)} kg`, get: e => maxWeight(e) || null }
+      : { title: t('totalReps'), fmt: v => t('repsUnit', { v: fmtNum(v) }), get: e => doneSets(e).reduce((t, s) => t + (s.reps || 0), 0) || null };
   }
-  return { title: 'Durée (minutes)', fmt: v => `${fmtNum(v)} min`, get: e => e.duration || null };
+  return { title: t('durationMin'), fmt: v => `${fmtNum(v)} min`, get: e => e.duration || null };
 }
 
 function exerciseListHtml() {
@@ -729,13 +743,13 @@ function exerciseListHtml() {
     if (!byEx.has(e.exId)) byEx.set(e.exId, { id: e.exId, name: e.name, kind: e.kind, last: s.id, entry: e, count: 0 });
     byEx.get(e.exId).count++;
   }
-  if (!byEx.size) return `<p class="muted small">Tes exercices apparaîtront ici après ta première séance.</p>`;
+  if (!byEx.size) return `<p class="muted small">${t('emptyExercises')}</p>`;
   return `<div class="ex-list">${[...byEx.values()].map(x => {
     const metric = metricFor(x.kind, historyOf(x.id));
     const v = metric.get(x.entry);
     return `<button class="row flat" onclick="openExercise('${esc(x.id)}')">${miniStack(x.entry)}
-      <span class="row-main"><span class="row-name">${esc(x.name)}</span>
-      <span class="row-sub">${x.count} fois · ${relDay(x.last)}</span></span>
+      <span class="row-main"><span class="row-name">${esc(entryName(x.entry))}</span>
+      <span class="row-sub">${tn('times', x.count, { when: relDay(x.last) })}</span></span>
       <span class="row-val">${v ? metric.fmt(v) : ''}</span>${icon('chev')}
     </button>`;
   }).join('')}</div>`;
@@ -753,18 +767,17 @@ function openExercise(exId) {
   let story = '';
   if (pts.length >= 2) {
     const a = pts[0].value, b = pts[pts.length - 1].value, diff = b - a;
-    story = diff > 0 ? `De ${metric.fmt(a)} à <b class="accent">${metric.fmt(b)}</b> depuis le ${esc(fmtDM(pts[0].date))}.`
-      : diff < 0 ? `De ${metric.fmt(a)} à ${metric.fmt(b)} depuis le ${esc(fmtDM(pts[0].date))}.`
-      : `Stable à ${metric.fmt(b)} depuis le ${esc(fmtDM(pts[0].date))}.`;
+    const vars = { a: metric.fmt(a), b: metric.fmt(b), date: esc(fmtDM(pts[0].date)) };
+    story = t(diff > 0 ? 'storyUp' : diff < 0 ? 'storyDown' : 'storyFlat', vars);
   }
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${plural(hist.length, 'séance')}</div><h3>${esc(first.name)}</h3></div>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
+      <div><div class="eyebrow">${tn('workouts', hist.length)}</div><h3>${esc(entryName(first))}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     ${story ? `<p class="story">${story}</p>` : ''}
     <p class="label">${metric.title}</p>
-    ${pts.length >= 2 ? `<div class="chart" id="ex-chart"></div>` : `<p class="muted small">La courbe apparaîtra à partir de 2 séances.</p>`}
+    ${pts.length >= 2 ? `<div class="chart" id="ex-chart"></div>` : `<p class="muted small">${t('curveLater')}</p>`}
     <ul class="history">${hist.map(h => `
       <li><span class="h-date">${esc(cap(fmtDay(h.date)))}</span><span>${esc(entrySummary(h.entry))}</span>
       ${h.entry.note ? `<span class="h-note">${esc(h.entry.note)}</span>` : ''}</li>`).join('')}</ul>`);
@@ -775,22 +788,23 @@ function openExercise(exId) {
 function openMenu() {
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">Mon compte</div><h3>${esc(Data.user.email)}</h3></div>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
+      <div><div class="eyebrow">${t('account')}</div><h3>${esc(Data.user.email)}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
-    ${DEMO ? `<p class="demo-note">Mode démo : les données sont factices et restent sur cet appareil.</p>` : ''}
+    ${DEMO ? `<p class="demo-note">${t('demoMenu')}</p>` : ''}
     <div class="goal">
-      <span>Objectif par semaine</span>
+      <span>${t('weeklyGoal')}</span>
       <div class="stepper small">
-        <button type="button" onclick="changeGoal(-1)" aria-label="Moins">${icon('minus')}</button>
+        <button type="button" onclick="changeGoal(-1)" aria-label="${t('minus')}">${icon('minus')}</button>
         <span class="serif" id="goal-val">${weeklyGoal()}</span>
-        <button type="button" onclick="changeGoal(1)" aria-label="Plus">${icon('plus')}</button>
+        <button type="button" onclick="changeGoal(1)" aria-label="${t('plus')}">${icon('plus')}</button>
       </div>
     </div>
+    <div class="goal"><span>${t('language')}</span><button class="chip" onclick="toggleLanguage()">${t('langSwitch')}</button></div>
     <div class="menu-list">
-      <button class="btn-line" onclick="openImport()">Importer l’ancienne FitCoach</button>
-      ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">Réinitialiser la démo</button>` : ''}
-      <button class="btn-line" onclick="logout()">Se déconnecter</button>
+      <button class="btn-line" onclick="openImport()">${t('importOld')}</button>
+      ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
+      <button class="btn-line" onclick="logout()">${t('logout')}</button>
     </div>`);
 }
 function changeGoal(d) {
@@ -837,7 +851,7 @@ function switchAuth(mode) {
   authMode = mode;
   $('#tab-login').classList.toggle('active', mode === 'login');
   $('#tab-register').classList.toggle('active', mode === 'register');
-  $('#auth-submit').textContent = mode === 'login' ? 'Se connecter' : 'Créer mon compte';
+  $('#auth-submit').textContent = mode === 'login' ? t('login') : t('createAccount');
   $('#auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
   $('#auth-forgot').classList.toggle('hidden', mode !== 'login');
   authMsg('');
@@ -863,14 +877,15 @@ async function submitAuth(ev) {
 }
 async function forgotPassword() {
   const email = $('#auth-email').value.trim();
-  if (!email) { authMsg('Écris ton e-mail ci-dessus, puis touche à nouveau « Mot de passe oublié ».'); return; }
+  if (!email) { authMsg(t('forgotNeedEmail')); return; }
   try {
     await Backend.reset(email);
-    authMsg('E-mail envoyé ! Regarde ta boîte de réception (et les spams).', true);
+    authMsg(t('resetSent'), true);
   } catch (e) { authMsg(authMessage(e.code)); }
 }
 
 // ===== DÉMARRAGE =====
+applyTranslations();
 startAuth(user => {
   $('#auth-screen').classList.toggle('hidden', !!user);
   $('#app').classList.toggle('hidden', !user);

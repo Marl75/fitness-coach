@@ -45,7 +45,7 @@ function firebaseBackend() {
     // Pas de await : hors connexion la promesse n'aboutit qu'au retour du réseau,
     // mais l'écriture est déjà visible localement.
     put(name, id, doc) {
-      col(name).doc(id).set(doc).catch(e => { console.warn(e); toast('Le serveur a refusé l’enregistrement'); });
+      col(name).doc(id).set(doc).catch(e => { console.warn(e); toast(t('serverRefused')); });
     },
     del(name, id) {
       col(name).doc(id).delete().catch(e => console.warn(e));
@@ -153,16 +153,5 @@ function savePrefs(patch) {
   Backend.put('settings', 'prefs', clean({ ...prefs(), id: undefined, ...patch }));
 }
 
-const AUTH_ERRORS = {
-  'auth/invalid-email': 'Adresse e-mail invalide.',
-  'auth/missing-password': 'Mot de passe manquant.',
-  'auth/weak-password': 'Mot de passe trop court (6 caractères minimum).',
-  'auth/email-already-in-use': 'Un compte existe déjà avec cet e-mail. Connecte-toi.',
-  'auth/invalid-credential': 'E-mail ou mot de passe incorrect.',
-  'auth/wrong-password': 'E-mail ou mot de passe incorrect.',
-  'auth/user-not-found': 'Aucun compte avec cet e-mail.',
-  'auth/too-many-requests': 'Trop d’essais. Réessaie dans quelques minutes.',
-  'auth/network-request-failed': 'Pas de connexion internet.',
-  'auth/operation-not-allowed': 'La connexion par e-mail n’est pas activée dans Firebase (Authentication > E-mail/Mot de passe).',
-};
-const authMessage = code => AUTH_ERRORS[code] || 'Une erreur est survenue. Réessaie.';
+// Messages d'erreur de connexion : traduits dans i18n.js (clés « auth/… »)
+const authMessage = code => (code && I18N.fr[code] ? t(code) : t('authDefault'));
