@@ -282,11 +282,42 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .sheet-head h3 { margin-top: 2px; word-break: break-word; }
 .sheet .input { margin-bottom: 12px; background: var(--bg); }
 .pick-group { font-size: 12px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; margin: 18px 0 4px; }
-.pick { display: flex; flex-direction: column; text-align: left; padding: 11px 12px; border-radius: 12px; margin: 0 -12px; width: calc(100% + 24px); }
+/* Choix de l'exercice : filtres, étoiles, création */
+.chips { display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px 6px; padding: 2px 20px 10px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips.wrap { flex-wrap: wrap; overflow: visible; margin: 0 0 18px; padding: 0; }
+.chip {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid var(--surface-2); font-weight: 700; font-size: 14px; color: var(--text-dim); white-space: nowrap;
+}
+.chip svg { width: 16px; height: 16px; fill: none; }
+.chip.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip.active svg { fill: currentColor; }
+.pick { display: flex; align-items: center; margin: 0 -12px; border-radius: 12px; }
 .pick:active { background: var(--surface-2); }
+.pick-main { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; padding: 11px 12px; }
 .pick-name { font-weight: 700; }
 .pick-sub { font-size: 13px; color: var(--text-dim); }
-.pick-create { color: var(--accent); }
+.star { width: 48px; height: 48px; display: grid; place-items: center; color: var(--text-faint); flex-shrink: 0; }
+.star svg { width: 22px; height: 22px; fill: none; }
+.star.on { color: var(--accent); }
+.star.on svg { fill: currentColor; }
+.empty-list { padding: 14px 0; line-height: 1.6; }
+.empty-list svg { width: 15px; height: 15px; vertical-align: -2px; fill: none; }
+.pick-create {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 14px; padding: 14px 0;
+  border-top: 1px solid var(--surface-2); color: var(--accent); font-weight: 800; text-align: left;
+}
+.similar { border: 1px solid var(--steel); border-radius: 16px; padding: 12px 14px; margin: -4px 0 16px; }
+.similar.warn { border-color: #F0B44A; }
+.similar-title { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-bottom: 4px; }
+.similar-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 10px 0; text-align: left; border-top: 1px solid var(--surface-2); }
+.similar-item:first-of-type { border-top: none; }
+.similar-use { color: var(--accent); font-weight: 800; font-size: 14px; flex-shrink: 0; }
+.similar p.small { margin-top: 6px; color: #F0B44A; }
+.quick { margin-top: 20px; }
+.quick .chips { margin-bottom: 0; }
+.quick .chip svg { fill: currentColor; color: var(--accent); }
 .kinds { display: grid; gap: 8px; margin-bottom: 18px; }
 .kind { display: flex; flex-direction: column; text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--surface-2); }
 .kind.active { border-color: var(--accent); background: var(--accent-soft); }

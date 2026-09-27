@@ -12,7 +12,7 @@ try { UI.tab = localStorage.getItem('fitcoach-tab') || 'today'; } catch (e) {}
 
 // ===== EXERCICES & HISTORIQUE =====
 function allExercises() {
-  return [...CATALOG, ...Data.exercises.map(e => ({ ...e, group: 'custom' }))];
+  return [...CATALOG, ...Data.exercises.map(e => ({ ...e, group: e.group || 'custom', custom: true }))];
 }
 const findExercise = id => allExercises().find(e => e.id === id);
 const activeSessions = () => Data.sessions.filter(s => (s.entries || []).some(entryDone));
@@ -132,14 +132,24 @@ function renderToday() {
         <p class="muted">${last ? `Dernière séance ${relDay(last.id)}.` : 'Ta première séance commence ici.'}
           ${isToday ? `<br>Cette semaine : ${weekCount} sur ${weeklyGoal()}.` : ''}</p>
         <button class="btn-accent big" onclick="openPicker()">${icon('plus')}${isToday ? 'Commencer ma séance' : 'Ajouter un exercice'}</button>
+      ${quickFavs()}
       </div>`;
   } else {
     html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e)).join('')}</div>
       <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current ? 'Ajouter un autre exercice' : 'Exercice suivant'}</button>
+      ${quickFavs()}
       ${entries.some(entryDone) ? `<p class="muted small center foot">${sessionFoot(entries)}</p>` : ''}`;
   }
   if (!isToday) html += `<p class="center"><button class="link" onclick="goToDay('${today}')">Revenir à aujourd’hui</button></p>`;
   $('#view').innerHTML = html;
+}
+
+// Favoris en un geste, sous le bouton d'ajout
+function quickFavs() {
+  const favs = favorites().map(findExercise);
+  if (!favs.length) return '';
+  return `<div class="quick"><p class="label">Favoris</p><div class="chips">${favs.map(ex =>
+    `<button class="chip" onclick="pickExercise('${esc(ex.id)}')">${icon('star')}${esc(ex.name)}</button>`).join('')}</div></div>`;
 }
 
 function sessionFoot(entries) {
@@ -213,72 +223,209 @@ function goToDay(date) {
   render();
 }
 
+// ===== FAVORIS =====
+const favorites = () => (prefs().favorites || []).filter(id => findExercise(id));
+const isFav = id => (prefs().favorites || []).includes(id);
+function toggleFav(id) {
+  const f = prefs().favorites || [];
+  const on = !f.includes(id);
+  savePrefs({ favorites: on ? [...f, id] : f.filter(x => x !== id) });
+  toast(on ? 'Ajouté aux favoris' : 'Retiré des favoris');
+}
+
+// ===== DOUBLONS =====
+// Compare un nom à tous les exercices (et à leurs autres noms) : identique, contenu, faute de frappe, mot en commun.
+const STOP = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'au', 'aux', 'en', 'et', 'avec', 'sur', 'the', 'machine', 'exercice']);
+const simple = s => norm(s).replace(/[^a-z0-9]+/g, ' ').trim();
+const words = s => simple(s).split(' ').filter(w => w.length > 2 && !STOP.has(w));
+function lev(a, b) {
+  const d = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]; d[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = d[j];
+      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = tmp;
+    }
+  }
+  return d[b.length];
+}
+function similarExercises(name) {
+  const n = simple(name);
+  if (n.length < 3) return [];
+  const nw = words(name);
+  const scored = allExercises().map(e => {
+    let score = 0;
+    for (const cand of [e.name, ...(e.aliases || [])]) {
+      const c = simple(cand);
+      if (c === n) score = Math.max(score, 100);
+      else if (c.length >= 4 && n.length >= 4 && (c.includes(n) || n.includes(c))) score = Math.max(score, 80);
+      if (lev(c, n) <= Math.max(1, Math.floor(Math.min(c.length, n.length) / 5))) score = Math.max(score, 75);
+      const cw = words(cand);
+      const common = nw.filter(w => cw.some(x => x === w || (w.length >= 5 && x.length >= 5 && lev(x, w) <= 1)));
+      if (common.length) score = Math.max(score, 50 + 15 * common.length);
+    }
+    return { e, score };
+  }).filter(x => x.score >= 60).sort((a, b) => b.score - a.score);
+  // Une correspondance forte existe : on n'affiche pas les ressemblances lointaines
+  const strong = scored.length && scored[0].score >= 80;
+  return scored.filter(x => !strong || x.score >= 75).slice(0, 5);
+}
+
 // ===== CHOIX DE L'EXERCICE =====
+function pickerFilters() {
+  const hasCustom = Data.exercises.length > 0;
+  const hasRecent = recentExerciseIds(1).length > 0;
+  return [
+    { id: 'fav', label: 'Favoris' },
+    hasRecent && { id: 'recent', label: 'Récents' },
+    { id: 'all', label: 'Tous' },
+    ...GROUPS.filter(g => g.id !== 'custom').map(g => ({ id: g.id, label: g.label })),
+    hasCustom && { id: 'custom', label: 'Mes exercices' },
+  ].filter(Boolean);
+}
+function defaultFilter() {
+  let f = null;
+  try { f = localStorage.getItem('fitcoach-filter'); } catch (e) {}
+  if (f && pickerFilters().some(x => x.id === f)) return f;
+  return favorites().length ? 'fav' : recentExerciseIds(1).length ? 'recent' : 'all';
+}
+function setFilter(id) {
+  UI.filter = id;
+  try { localStorage.setItem('fitcoach-filter', id); } catch (e) {}
+  renderPickerList();
+  const chip = document.querySelector(`#picker-chips [data-f="${id}"]`);
+  if (chip) chip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+}
+
 function openPicker() {
   UI.search = '';
+  UI.filter = defaultFilter();
   openSheet(`
     <div class="sheet-head"><h3>Quel exercice ?</h3>
       <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button></div>
-    <input class="input" type="search" placeholder="Rechercher ou créer…" oninput="UI.search=this.value;renderPickerList()" aria-label="Rechercher un exercice">
+    <input class="input" type="search" placeholder="Rechercher…" oninput="UI.search=this.value;renderPickerList()" aria-label="Rechercher un exercice">
+    <div class="chips" id="picker-chips" role="tablist" aria-label="Catégories"></div>
     <div id="picker-list"></div>`, renderPickerList);
 }
 
 function pickItem(ex) {
   const last = historyOf(ex.id)[0];
   const sub = last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : KINDS[ex.kind].label;
-  return `<button class="pick" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(ex.name)}</span><span class="pick-sub">${esc(sub)}</span></button>`;
+  const fav = isFav(ex.id);
+  return `<div class="pick">
+    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(ex.name)}</span><span class="pick-sub">${esc(sub)}</span></button>
+    <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? 'Retirer des favoris' : 'Ajouter aux favoris'} : ${esc(ex.name)}">${icon('star')}</button>
+  </div>`;
 }
+const byName = (a, b) => a.name.localeCompare(b.name, 'fr');
 
 function renderPickerList() {
   const box = $('#picker-list');
   if (!box) return;
+  const q = UI.search.trim();
+  $('#picker-chips').innerHTML = pickerFilters().map(f =>
+    `<button class="chip${!q && UI.filter === f.id ? ' active' : ''}" data-f="${f.id}" role="tab" aria-selected="${!q && UI.filter === f.id}" onclick="setFilter('${f.id}')">${f.id === 'fav' ? icon('star') : ''}${f.label}</button>`).join('');
   const all = allExercises();
-  const q = norm(UI.search);
   let html = '';
   if (q) {
-    const found = all.filter(e => norm(e.name).includes(q));
-    if (!found.some(e => norm(e.name) === q)) {
-      html += `<button class="pick" onclick="openCreate()"><span class="pick-name pick-create">+ Créer « ${esc(UI.search.trim())} »</span><span class="pick-sub">Nouvel exercice</span></button>`;
+    // Recherche dans tout le catalogue, y compris les autres noms (anglais…)
+    const nq = simple(q);
+    const found = all.filter(e => [e.name, ...(e.aliases || [])].some(n => simple(n).includes(nq)))
+      .sort((a, b) => (isFav(b.id) - isFav(a.id)) || byName(a, b));
+    html += found.length ? found.map(pickItem).join('') : `<p class="muted small empty-list">Aucun exercice ne correspond à « ${esc(q)} ».</p>`;
+    if (!found.some(e => simple(e.name) === nq)) {
+      html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}Créer « ${esc(q)} »</button>`;
     }
-    html += found.map(pickItem).join('');
   } else {
-    const recent = recentExerciseIds(6).map(findExercise).filter(Boolean);
-    if (recent.length) html += `<p class="pick-group">Récents</p>` + recent.map(pickItem).join('');
-    for (const g of GROUPS) {
-      const list = all.filter(e => e.group === g.id);
-      if (list.length) html += `<p class="pick-group">${g.label}</p>` + list.map(pickItem).join('');
+    const f = UI.filter;
+    if (f === 'fav') {
+      const favs = favorites().map(findExercise);
+      html += favs.length ? favs.map(pickItem).join('')
+        : `<p class="muted small empty-list">Pas encore de favori. Touche l’étoile ${icon('star')} à côté d’un exercice pour le retrouver ici, et en raccourci sur l’écran Séance.</p>`;
+    } else if (f === 'recent') {
+      html += recentExerciseIds(12).map(findExercise).filter(Boolean).map(pickItem).join('');
+    } else if (f === 'all') {
+      for (const g of GROUPS) {
+        const list = all.filter(e => e.group === g.id).sort(byName);
+        if (list.length) html += `<p class="pick-group">${g.label}</p>` + list.map(pickItem).join('');
+      }
+    } else if (f === 'custom') {
+      html += all.filter(e => e.custom).sort(byName).map(pickItem).join('');
+    } else {
+      html += all.filter(e => e.group === f).sort(byName).map(pickItem).join('');
     }
-    html += `<p class="pick-group">Il manque un exercice ?</p>
-      <button class="pick" onclick="openCreate()"><span class="pick-name pick-create">+ Créer un exercice</span></button>`;
+    html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}Créer un exercice</button>`;
   }
   box.innerHTML = html;
 }
 
+// ===== CRÉER UN EXERCICE (avec vérification des doublons) =====
+let createConfirm = false;
 function openCreate() {
   const name = UI.search.trim();
+  createConfirm = false;
+  const groupFor = ['upper', 'lower', 'core', 'cardio', 'class'];
   openSheet(`
     <div class="sheet-head"><h3>Nouvel exercice</h3>
       <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button></div>
     <label class="field"><span>Nom</span>
-      <input class="input" id="new-name" value="${esc(name)}" maxlength="60" placeholder="ex. Presse à épaules"></label>
+      <input class="input" id="new-name" value="${esc(name)}" maxlength="60" placeholder="ex. Presse à épaules" oninput="createConfirm=false;renderSimilar()" autocomplete="off"></label>
+    <div id="similar"></div>
     <p class="field"><span>Ce que tu veux noter</span></p>
     <div class="kinds" role="radiogroup">${Object.entries(KINDS).map(([k, v], i) => `
       <button class="kind${i === 0 ? ' active' : ''}" data-kind="${k}" role="radio" aria-checked="${i === 0}" onclick="selectKind(this)">
         <span class="kind-label">${v.label}</span><span class="kind-hint">${v.hint}</span></button>`).join('')}</div>
-    <button class="btn-accent big" onclick="createExercise()">Créer et commencer</button>`);
+    <p class="field"><span>Catégorie (pour le retrouver dans les filtres)</span></p>
+    <div class="chips wrap" id="new-group" role="radiogroup">${GROUPS.filter(g => groupFor.includes(g.id)).map(g =>
+      `<button class="chip" data-g="${g.id}" role="radio" aria-checked="false" onclick="selectGroup(this)">${g.label}</button>`).join('')}</div>
+    <button class="btn-accent big" id="create-btn" onclick="createExercise()">Créer et commencer</button>`);
+  renderSimilar();
   if (!name) $('#new-name').focus();
 }
 function selectKind(btn) {
   document.querySelectorAll('.kind').forEach(b => { b.classList.toggle('active', b === btn); b.setAttribute('aria-checked', b === btn); });
 }
+function selectGroup(btn) {
+  const on = !btn.classList.contains('active');
+  document.querySelectorAll('#new-group .chip').forEach(b => { b.classList.toggle('active', on && b === btn); b.setAttribute('aria-checked', on && b === btn); });
+}
+function renderSimilar() {
+  const box = $('#similar');
+  if (!box) return;
+  const sim = similarExercises($('#new-name').value);
+  const btn = $('#create-btn');
+  if (btn) btn.textContent = createConfirm ? 'Créer quand même' : 'Créer et commencer';
+  box.innerHTML = !sim.length ? '' : `
+    <div class="similar${createConfirm ? ' warn' : ''}">
+      <p class="similar-title">${sim[0].score === 100 ? 'Cet exercice existe déjà :' : 'Il existe peut-être déjà :'}</p>
+      ${sim.map(({ e }) => `<button class="similar-item" onclick="pickExercise('${esc(e.id)}')">
+        <span><b>${esc(e.name)}</b><span class="muted small"> · ${esc((GROUPS.find(g => g.id === e.group) || {}).label || '')}</span></span>
+        <span class="similar-use">Utiliser</span></button>`).join('')}
+      ${createConfirm ? '<p class="small">Si c’est bien un autre exercice, touche « Créer quand même ».</p>' : ''}
+    </div>`;
+}
 function createExercise() {
-  const name = $('#new-name').value.trim();
+  const name = $('#new-name').value.trim().replace(/\s+/g, ' ');
   if (!name) { $('#new-name').focus(); return; }
-  const existing = allExercises().find(e => norm(e.name) === norm(name));
-  if (existing) { pickExercise(existing.id); return; }
+  const sim = similarExercises(name);
+  if (sim.length && sim[0].score === 100) {
+    toast('Cet exercice existe déjà');
+    pickExercise(sim[0].e.id);
+    return;
+  }
+  if (sim.length && !createConfirm) {
+    createConfirm = true;
+    renderSimilar();
+    $('#similar').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+  const g = document.querySelector('#new-group .chip.active');
   const ex = { id: 'c-' + Date.now().toString(36), name, kind: $('.kind.active').dataset.kind, createdAt: Date.now() };
+  if (g) ex.group = g.dataset.g;
   saveCustomExercise(ex);
-  pickExercise(ex.id, ex);
+  toast(`« ${name} » créé`);
+  pickExercise(ex.id, { ...ex, group: ex.group || 'custom', custom: true });
 }
 
 function pickExercise(id, exObj) {
