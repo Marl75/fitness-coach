@@ -2,7 +2,7 @@
 // Même principe que Ma Collection : langue du téléphone par défaut, bouton pour changer, choix mémorisé.
 const I18N = {
   fr: {
-    locale: 'fr-FR', langSwitch: 'English', close: 'Fermer', save: 'Enregistrer', minus: 'Moins', plus: 'Plus',
+    locale: 'fr-FR', close: 'Fermer', save: 'Enregistrer', minus: 'Moins', plus: 'Plus',
     // Connexion
     authSub: 'Note tes séances, suis ta régularité', tabLogin: 'Connexion', tabRegister: 'Inscription',
     email: 'E-mail', emailPh: 'ton@email.com', password: 'Mot de passe', passwordPh: '6 caractères minimum',
@@ -80,7 +80,7 @@ const I18N = {
     g_class: 'Cours & étirements', g_custom: 'Mes exercices',
   },
   en: {
-    locale: 'en-GB', langSwitch: 'Français', close: 'Close', save: 'Save', minus: 'Less', plus: 'More',
+    locale: 'en-GB', close: 'Close', save: 'Save', minus: 'Less', plus: 'More',
     authSub: 'Log your workouts, track your consistency', tabLogin: 'Log in', tabRegister: 'Sign up',
     email: 'Email', emailPh: 'you@email.com', password: 'Password', passwordPh: 'At least 6 characters',
     login: 'Log in', createAccount: 'Create my account', forgot: 'Forgot password?',
@@ -176,6 +176,18 @@ function applyTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  const sw = document.getElementById('auth-lang');
+  if (sw) sw.innerHTML = langSwitchHtml();
+}
+
+// Sélecteur « FR | EN » : les deux langues toujours visibles, la langue active surlignée
+function langSwitchHtml() {
+  return `<div class="seg" role="radiogroup" aria-label="${t('language')}">${['fr', 'en'].map(l =>
+    `<button class="${l === currentLang ? 'active' : ''}" role="radio" aria-checked="${l === currentLang}" onclick="setLanguage('${l}')">${l.toUpperCase()}</button>`).join('')}</div>`;
+}
+function setLanguage(lang) {
+  if (lang === currentLang) return;
+  toggleLanguage();
 }
 
 function toggleLanguage() {

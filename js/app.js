@@ -839,7 +839,7 @@ function openMenu() {
         <button type="button" onclick="changeGoal(1)" aria-label="${t('plus')}">${icon('plus')}</button>
       </div>
     </div>
-    <div class="goal"><span>${t('language')}</span><button class="chip" onclick="toggleLanguage()">${t('langSwitch')}</button></div>
+    <div class="goal"><span>${t('language')}</span>${langSwitchHtml()}</div>
     <div class="menu-list">
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
       <button class="btn-line" onclick="logout()">${t('logout')}</button>

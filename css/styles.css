@@ -86,7 +86,10 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 }
 .btn-line { width: 100%; min-height: 52px; padding: 12px 16px; background: var(--surface-2); border-radius: 14px; font-weight: 600; text-align: left; }
 .link { color: var(--text-dim); text-decoration: underline; font-size: 14px; padding: 10px; }
-.lang-link { display: block; margin: 4px auto 0; }
+.lang-row { display: flex; justify-content: center; margin-top: 14px; }
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--surface-2); }
+.seg button { min-width: 52px; height: 38px; padding: 0 14px; border-radius: 999px; font-weight: 800; font-size: 14px; color: var(--text-dim); }
+.seg button.active { background: var(--accent); color: var(--accent-ink); }
 .link-danger { color: var(--danger); font-weight: 700; padding: 14px; width: 100%; }
 .icon-btn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text-dim); flex-shrink: 0; }
 .icon-btn:active { background: var(--surface-2); }
