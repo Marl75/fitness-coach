@@ -153,5 +153,6 @@ const AUTH_ERRORS = {
   'auth/user-not-found': 'Aucun compte avec cet e-mail.',
   'auth/too-many-requests': 'Trop d’essais. Réessaie dans quelques minutes.',
   'auth/network-request-failed': 'Pas de connexion internet.',
+  'auth/operation-not-allowed': 'La connexion par e-mail n’est pas activée dans Firebase (Authentication > E-mail/Mot de passe).',
 };
 const authMessage = code => AUTH_ERRORS[code] || 'Une erreur est survenue. Réessaie.';
