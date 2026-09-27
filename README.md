@@ -1,4 +1,6 @@
-# FitCoach
+# Routine
+
+(anciennement FitCoach — l'adresse reste marl75.github.io/fitness-coach)
 
 Petite appli (PWA) pour noter ses séances de sport et suivre sa régularité.
 

@@ -1,4 +1,4 @@
-// Configuration du projet Firebase de FitCoach.
+// Configuration du projet Firebase de Routine (projet « fitcoach-71392 », ancien nom de l'appli).
 // Colle ici le bloc « firebaseConfig » donné par la console Firebase
 // (Paramètres du projet > Vos applications > Appli Web).
 // Ce bloc n'est pas secret : ce sont les règles Firestore qui protègent les données.

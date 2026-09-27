@@ -841,7 +841,6 @@ function openMenu() {
     </div>
     <div class="goal"><span>${t('language')}</span><button class="chip" onclick="toggleLanguage()">${t('langSwitch')}</button></div>
     <div class="menu-list">
-      <button class="btn-line" onclick="openImport()">${t('importOld')}</button>
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
       <button class="btn-line" onclick="logout()">${t('logout')}</button>
     </div>`);

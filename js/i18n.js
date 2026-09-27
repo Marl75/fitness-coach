@@ -69,15 +69,10 @@ const I18N = {
     storyFlat: 'Stable à {b} depuis le {date}.', curveLater: 'La courbe apparaîtra à partir de 2 séances.',
     // Mon compte
     demoMenu: 'Mode démo : les données sont factices et restent sur cet appareil.', weeklyGoal: 'Objectif par semaine',
-    importOld: 'Importer l’ancienne FitCoach', resetDemo: 'Réinitialiser la démo', logout: 'Se déconnecter', language: 'Langue',
+    resetDemo: 'Réinitialiser la démo', logout: 'Se déconnecter', language: 'Langue',
     // Dates et résumés
     today: 'aujourd’hui', yesterday: 'hier', daysAgo: 'il y a {n} jours', onDate: 'le {date}',
     didIt: 'Fait', notStarted: 'Pas encore commencé',
-    // Import
-    importTitle: 'Importer l’ancienne FitCoach',
-    importHint: 'Choisis le fichier de sauvegarde (FitCoach-sauvegarde-….json). Les exercices déjà importés ne sont pas ajoutés deux fois.',
-    unreadable: 'Ce fichier n’est pas lisible', noSessionsFile: 'Aucune séance trouvée dans ce fichier', whichProfile: 'Quel profil importer ?',
-    unnamed: 'Sans nom', imported_one: '{n} exercice importé', imported_other: '{n} exercices importés', allImported: 'Tout était déjà importé',
     // Types et catégories
     kind_sets: 'Muscu', kindHint_sets: 'séries, répétitions, poids', kind_cardio: 'Cardio', kindHint_cardio: 'durée, distance',
     kind_time: 'Cours / étirement', kindHint_time: 'durée',
@@ -145,13 +140,9 @@ const I18N = {
     storyUp: 'From {a} to <b class="accent">{b}</b> since {date}.', storyDown: 'From {a} to {b} since {date}.',
     storyFlat: 'Steady at {b} since {date}.', curveLater: 'The chart will appear after 2 workouts.',
     demoMenu: 'Demo mode: data is fake and stays on this device.', weeklyGoal: 'Weekly goal',
-    importOld: 'Import old FitCoach', resetDemo: 'Reset demo', logout: 'Log out', language: 'Language',
+    resetDemo: 'Reset demo', logout: 'Log out', language: 'Language',
     today: 'today', yesterday: 'yesterday', daysAgo: '{n} days ago', onDate: 'on {date}',
     didIt: 'Done', notStarted: 'Not started yet',
-    importTitle: 'Import old FitCoach',
-    importHint: 'Pick the backup file (FitCoach-sauvegarde-….json). Exercises already imported are not added twice.',
-    unreadable: 'This file can’t be read', noSessionsFile: 'No workout found in this file', whichProfile: 'Which profile to import?',
-    unnamed: 'No name', imported_one: '{n} exercise imported', imported_other: '{n} exercises imported', allImported: 'Everything was already imported',
     kind_sets: 'Strength', kindHint_sets: 'sets, reps, weight', kind_cardio: 'Cardio', kindHint_cardio: 'duration, distance',
     kind_time: 'Class / stretching', kindHint_time: 'duration',
     g_upper: 'Upper body', g_lower: 'Legs & glutes', g_core: 'Core', g_cardio: 'Cardio',

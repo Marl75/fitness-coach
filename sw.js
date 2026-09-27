@@ -1,9 +1,9 @@
-// Service worker de FitCoach : permet d'ouvrir l'appli sans connexion (salle de sport en sous-sol…).
+// Service worker de Routine : permet d'ouvrir l'appli sans connexion (salle de sport en sous-sol…).
 // - Fichiers de l'appli : réseau d'abord, copie locale si le réseau manque.
 // - Bibliothèques Firebase et polices (adresses versionnées) : copie locale d'abord.
 // - Données Firestore et connexion : jamais interceptées (Firestore gère lui-même le hors connexion).
 // Penser à ajouter ici tout nouveau fichier js et à changer le nom du cache.
-const CACHE = 'fitcoach-v4';
+const CACHE = 'fitcoach-v5';
 const CORE = [
   './',
   './index.html',
@@ -15,7 +15,6 @@ const CORE = [
   './js/util.js',
   './js/data.js',
   './js/charts.js',
-  './js/import.js',
   './js/app.js',
   './icon-192.png',
   './icon-32.png',
