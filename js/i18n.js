@@ -42,6 +42,8 @@ const I18N = {
     existsAlready: 'Cet exercice existe déjà :', maybeExists: 'Il existe peut-être déjà :', use: 'Utiliser',
     confirmCreate: 'Si c’est bien un autre exercice, touche « Créer quand même ».', existsToast: 'Cet exercice existe déjà',
     created: '« {name} » créé',
+    hide: 'Masquer', unhide: 'Réafficher', hiddenSection: 'Masqués ({n})', hiddenToast: 'Masqué · en bas de la liste',
+    unhiddenToast: 'Réaffiché', hiddenHint: 'Exercices que tu as masqués. Touche « Réafficher » pour les remettre dans la liste.',
     // Réglage d'une série
     weightHint: 'Poids · touche une plaque', reps: 'Répétitions', repPlus: 'Une répétition de plus', repMinus: 'Une répétition de moins',
     lastTime: 'La dernière fois ({when}) : {what}', firstTimeEx: 'Première fois sur cet exercice.', firstTime: 'Première fois !',
@@ -119,6 +121,8 @@ const I18N = {
     existsAlready: 'This exercise already exists:', maybeExists: 'It may already exist:', use: 'Use',
     confirmCreate: 'If it really is a different exercise, tap “Create anyway”.', existsToast: 'This exercise already exists',
     created: '“{name}” created',
+    hide: 'Hide', unhide: 'Show again', hiddenSection: 'Hidden ({n})', hiddenToast: 'Hidden · moved to the bottom of the list',
+    unhiddenToast: 'Shown again', hiddenHint: 'Exercises you have hidden. Tap “Show again” to put them back in the list.',
     weightHint: 'Weight · tap a plate', reps: 'Reps', repPlus: 'One more rep', repMinus: 'One less rep',
     lastTime: 'Last time ({when}): {what}', firstTimeEx: 'First time on this exercise.', firstTime: 'First time!',
     validateSet: 'Log this set', deleteSet: 'Delete this set', modified: 'Updated', saved: 'Saved',

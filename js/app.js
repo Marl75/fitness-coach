@@ -5,6 +5,7 @@ const UI = {
   month: null,         // mois affiché dans le calendrier (1er du mois)
   selDay: null,        // jour touché dans le calendrier
   search: '',
+  showHidden: false,   // section « Masqués » dépliée
 };
 let draft = null;      // cardio / cours en cours de saisie
 let setDraft = null;   // série en cours de réglage (pile de plaques)
@@ -231,6 +232,19 @@ function toggleFav(id) {
   toast(on ? t('addedFav') : t('removedFav'));
 }
 
+// ===== MASQUÉS =====
+// Exercices qui ne t'intéressent pas ou pas dispo : rangés en bas de la liste, repliés.
+const isHidden = id => (prefs().hidden || []).includes(id);
+function toggleHidden(id) {
+  const h = prefs().hidden || [];
+  const on = !h.includes(id);
+  const patch = { hidden: on ? [...h, id] : h.filter(x => x !== id) };
+  if (on) patch.favorites = (prefs().favorites || []).filter(x => x !== id); // un exercice masqué n'est plus en favori
+  savePrefs(patch);
+  toast(on ? t('hiddenToast') : t('unhiddenToast'));
+}
+function toggleHiddenSection() { UI.showHidden = !UI.showHidden; renderPickerList(); }
+
 // ===== DOUBLONS =====
 // Compare un nom à tous les exercices (et à leurs autres noms) : identique, contenu, faute de frappe, mot en commun.
 const STOP = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'au', 'aux', 'en', 'et', 'avec', 'sur', 'the', 'machine', 'exercice']);
@@ -307,6 +321,22 @@ function openPicker() {
     <div id="picker-list"></div>`, renderPickerList);
 }
 
+function hiddenItem(ex) {
+  return `<div class="pick hidden-ex">
+    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(exLabel(ex))}</span></button>
+    <button class="unhide" onclick="toggleHidden('${esc(ex.id)}')">${t('unhide')}</button>
+  </div>`;
+}
+function hiddenSection(list) {
+  if (!list.length) return '';
+  return `<div class="hidden-block">
+    <button class="hidden-toggle" onclick="toggleHiddenSection()" aria-expanded="${UI.showHidden}">
+      ${icon('eyeoff')}<span>${t('hiddenSection', { n: list.length })}</span>${icon(UI.showHidden ? 'up' : 'down')}
+    </button>
+    ${UI.showHidden ? `<p class="muted small">${t('hiddenHint')}</p>` + list.map(hiddenItem).join('') : ''}
+  </div>`;
+}
+
 function pickItem(ex) {
   const last = historyOf(ex.id)[0];
   const sub = last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : KINDS[ex.kind].label;
@@ -314,6 +344,7 @@ function pickItem(ex) {
   return `<div class="pick">
     <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(exLabel(ex))}</span><span class="pick-sub">${esc(sub)}</span></button>
     <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? t('favOn') : t('favOff')} : ${esc(exLabel(ex))}">${icon('star')}</button>
+    <button class="hide-btn" onclick="toggleHidden('${esc(ex.id)}')" aria-label="${t('hide')} : ${esc(exLabel(ex))}">${icon('eyeoff')}</button>
   </div>`;
 }
 const byName = (a, b) => exLabel(a).localeCompare(exLabel(b), currentLang);
@@ -324,7 +355,9 @@ function renderPickerList() {
   const q = UI.search.trim();
   $('#picker-chips').innerHTML = pickerFilters().map(f =>
     `<button class="chip${!q && UI.filter === f.id ? ' active' : ''}" data-f="${f.id}" role="tab" aria-selected="${!q && UI.filter === f.id}" onclick="setFilter('${f.id}')">${f.id === 'fav' ? icon('star') : ''}${f.label}</button>`).join('');
-  const all = allExercises();
+  const every = allExercises();
+  const all = every.filter(e => !isHidden(e.id));
+  let hiddenPool = [];
   let html = '';
   if (q) {
     // Recherche dans tout le catalogue, y compris les autres noms (anglais…)
@@ -332,6 +365,7 @@ function renderPickerList() {
     const found = all.filter(e => [e.name, e.en, ...(e.aliases || [])].filter(Boolean).some(n => simple(n).includes(nq)))
       .sort((a, b) => (isFav(b.id) - isFav(a.id)) || byName(a, b));
     html += found.length ? found.map(pickItem).join('') : `<p class="muted small empty-list">${t('noMatch', { q: esc(q) })}</p>`;
+    hiddenPool = every.filter(e => isHidden(e.id) && [e.name, e.en, ...(e.aliases || [])].filter(Boolean).some(n => simple(n).includes(nq)));
     if (!found.some(e => simple(exLabel(e)) === nq)) {
       html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}${t('createQ', { q: esc(q) })}</button>`;
     }
@@ -342,20 +376,25 @@ function renderPickerList() {
       html += favs.length ? favs.map(pickItem).join('')
         : `<p class="muted small empty-list">${t('noFavs', { star: icon('star') })}</p>`;
     } else if (f === 'recent') {
-      html += recentExerciseIds(12).map(findExercise).filter(Boolean).map(pickItem).join('');
+      const recent = recentExerciseIds(12).map(findExercise).filter(Boolean);
+      html += recent.filter(e => !isHidden(e.id)).map(pickItem).join('');
+      hiddenPool = recent.filter(e => isHidden(e.id));
     } else if (f === 'all') {
       for (const g of GROUPS) {
         const list = all.filter(e => e.group === g.id).sort(byName);
         if (list.length) html += `<p class="pick-group">${g.label}</p>` + list.map(pickItem).join('');
       }
+      hiddenPool = every.filter(e => isHidden(e.id));
     } else if (f === 'custom') {
       html += all.filter(e => e.custom).sort(byName).map(pickItem).join('');
+      hiddenPool = every.filter(e => e.custom && isHidden(e.id));
     } else {
       html += all.filter(e => e.group === f).sort(byName).map(pickItem).join('');
+      hiddenPool = every.filter(e => e.group === f && isHidden(e.id));
     }
     html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}${t('createExercise')}</button>`;
   }
-  box.innerHTML = html;
+  box.innerHTML = html + hiddenSection(hiddenPool.sort(byName));
 }
 
 // ===== CRÉER UN EXERCICE (avec vérification des doublons) =====

@@ -303,6 +303,15 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .star svg { width: 22px; height: 22px; fill: none; }
 .star.on { color: var(--accent); }
 .star.on svg { fill: currentColor; }
+.hide-btn { width: 44px; height: 48px; display: grid; place-items: center; color: var(--text-faint); flex-shrink: 0; }
+.hide-btn svg { width: 19px; height: 19px; }
+.hidden-block { margin-top: 18px; border-top: 1px solid var(--surface-2); }
+.hidden-toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px 0; color: var(--text-dim); font-weight: 700; font-size: 14px; }
+.hidden-toggle span { flex: 1; text-align: left; }
+.hidden-toggle svg { width: 18px; height: 18px; }
+.hidden-block > .muted { margin: -4px 0 6px; }
+.hidden-ex .pick-name { color: var(--text-faint); font-weight: 600; }
+.unhide { height: 36px; padding: 0 12px; margin-right: 12px; border-radius: 999px; border: 1px solid var(--steel); color: var(--accent); font-weight: 700; font-size: 13px; flex-shrink: 0; }
 .empty-list { padding: 14px 0; line-height: 1.6; }
 .empty-list svg { width: 15px; height: 15px; vertical-align: -2px; fill: none; }
 .pick-create {
