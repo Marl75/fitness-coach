@@ -9,6 +9,7 @@ const Data = {
   user: null,
   sessions: [],   // de la plus récente à la plus ancienne
   exercises: [],  // exercices créés par l'utilisateur
+  settings: [],   // réglages (document « prefs » : objectif par semaine)
   pending: false, // des écritures attendent le réseau
 };
 
@@ -30,12 +31,12 @@ function firebaseBackend() {
     reset: email => auth.sendPasswordResetEmail(email),
     logout: () => auth.signOut(),
     listen(emit) {
-      const pending = { sessions: false, exercises: false };
-      for (const name of ['sessions', 'exercises']) {
+      const pending = { sessions: false, exercises: false, settings: false };
+      for (const name of ['sessions', 'exercises', 'settings']) {
         unsubs.push(col(name).onSnapshot({ includeMetadataChanges: true }, snap => {
           Data[name] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           pending[name] = snap.metadata.hasPendingWrites;
-          Data.pending = pending.sessions || pending.exercises;
+          Data.pending = Object.values(pending).some(Boolean);
           emit();
         }, e => console.warn('Lecture impossible :', e)));
       }
@@ -58,11 +59,13 @@ function demoBackend() {
   let store = null;
   try { store = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
   store = store || { user: null, sessions: {}, exercises: {} };
+  store.settings = store.settings || {};
   let authCb = () => {}, emitCb = null;
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
   const push = () => {
     Data.sessions = Object.entries(store.sessions).map(([id, d]) => ({ id, ...d }));
     Data.exercises = Object.entries(store.exercises).map(([id, d]) => ({ id, ...d }));
+    Data.settings = Object.entries(store.settings).map(([id, d]) => ({ id, ...d }));
     if (emitCb) emitCb();
   };
   const signIn = async email => {
@@ -102,7 +105,7 @@ function demoSessions() {
     const plan = plans[back % 3];
     const entries = plan.map(([exId, name, base], i) => ({
       id: `e${back}-${i}`, exId, name, kind: 'sets', note: '',
-      sets: [0, 1, 2].map(() => ({ reps: base ? 10 : 20, weight: base ? Math.round((base * (1 + progress * 0.3)) / 2.5) * 2.5 : null })),
+      sets: [0, 1, 2].map(() => ({ done: true, reps: base ? 10 : 20, weight: base ? Math.round((base * (1 + progress * 0.3)) / 2.5) * 2.5 : null })),
     }));
     if (rand() > 0.4) entries.push({ id: `e${back}-c`, exId: 'tapis', name: 'Tapis de course', kind: 'cardio', note: '', duration: 15 + Math.round(rand() * 3) * 5, distance: null });
     if (rand() > 0.85) entries.splice(0, entries.length, { id: `e${back}-y`, exId: 'yoga', name: 'Yoga', kind: 'time', note: 'Cours du dimanche', duration: 60 });
@@ -120,6 +123,7 @@ function startAuth(onUser) {
     Backend.stop();
     Data.sessions = [];
     Data.exercises = [];
+    Data.settings = [];
     if (user) Backend.listen(() => {
       Data.sessions.sort((a, b) => b.id.localeCompare(a.id));
       onDataChange();
@@ -141,6 +145,12 @@ function saveSession(session) {
 function saveCustomExercise(ex) {
   const { id, ...doc } = ex;
   Backend.put('exercises', id, clean(doc));
+}
+
+const prefs = () => Data.settings.find(s => s.id === 'prefs') || {};
+const weeklyGoal = () => prefs().weeklyGoal || 3;
+function savePrefs(patch) {
+  Backend.put('settings', 'prefs', clean({ ...prefs(), id: undefined, ...patch }));
 }
 
 const AUTH_ERRORS = {

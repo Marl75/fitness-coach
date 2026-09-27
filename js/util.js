@@ -16,13 +16,14 @@ const mondayOf = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getD
 const daysBetween = (a, b) => Math.round((toDate(b) - toDate(a)) / 86400000);
 const fmtDay = s => toDate(s).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 const fmtShort = s => toDate(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+const fmtDM = s => toDate(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 const fmtLong = s => toDate(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 function relDay(s) {
   const n = daysBetween(s, isoDate());
   if (n === 0) return 'aujourd’hui';
   if (n === 1) return 'hier';
   if (n > 1 && n < 7) return `il y a ${n} jours`;
-  return `le ${fmtShort(s)}`;
+  return `le ${fmtDM(s)}`;
 }
 
 const numOrNull = v => {
@@ -32,11 +33,16 @@ const numOrNull = v => {
 };
 const fmtNum = n => String(Math.round(n * 100) / 100).replace('.', ',');
 
+// Séries : une série prévue a done === false ; les anciennes données (sans le champ) comptent comme faites
+const doneSets = e => (e.sets || []).filter(s => s.done !== false && (s.reps || s.weight));
+const pendingIndex = e => e.kind === 'sets' ? (e.sets || []).findIndex(s => s.done === false) : -1;
+const entryDone = e => e.kind !== 'sets' || doneSets(e).length > 0;
+
 // Résumé lisible d'un exercice noté : « 3 × 10 · 20 kg », « 25 min · 3 km »
 function entrySummary(e) {
   if (e.kind === 'sets') {
-    const sets = (e.sets || []).filter(s => s.reps || s.weight);
-    if (!sets.length) return 'Fait';
+    const sets = doneSets(e);
+    if (!sets.length) return (e.sets || []).length ? 'Pas encore commencé' : 'Fait';
     // Mêmes répétitions, poids différents : « 3 × 10 · 35 / 32,5 / 35 kg »
     if (sets.length > 1 && sets.every(s => s.reps === sets[0].reps) && sets.every(s => s.weight) && new Set(sets.map(s => s.weight)).size > 1) {
       return `${sets.length} × ${sets[0].reps || '?'} · ${sets.map(s => fmtNum(s.weight)).join(' / ')} kg`;

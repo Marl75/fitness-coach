@@ -6,7 +6,8 @@ const UI = {
   selDay: null,        // jour touché dans le calendrier
   search: '',
 };
-let draft = null;      // exercice en cours de saisie
+let draft = null;      // cardio / cours en cours de saisie
+let setDraft = null;   // série en cours de réglage (pile de plaques)
 try { UI.tab = localStorage.getItem('fitcoach-tab') || 'today'; } catch (e) {}
 
 // ===== EXERCICES & HISTORIQUE =====
@@ -14,16 +15,16 @@ function allExercises() {
   return [...CATALOG, ...Data.exercises.map(e => ({ ...e, group: 'custom' }))];
 }
 const findExercise = id => allExercises().find(e => e.id === id);
-const activeSessions = () => Data.sessions.filter(s => s.entries && s.entries.length);
+const activeSessions = () => Data.sessions.filter(s => (s.entries || []).some(entryDone));
 const sessionOf = date => Data.sessions.find(s => s.id === date);
 function cloneSession(date) {
   const s = sessionOf(date);
   return s ? JSON.parse(JSON.stringify(s)) : { id: date, entries: [], createdAt: Date.now() };
 }
-// Tous les passages d'un exercice, du plus récent au plus ancien
+// Tous les passages faits d'un exercice, du plus récent au plus ancien
 function historyOf(exId) {
   const out = [];
-  for (const s of Data.sessions) for (const e of s.entries || []) if (e.exId === exId) out.push({ date: s.id, entry: e });
+  for (const s of Data.sessions) for (const e of s.entries || []) if (e.exId === exId && entryDone(e)) out.push({ date: s.id, entry: e });
   return out;
 }
 function recentExerciseIds(limit) {
@@ -33,6 +34,46 @@ function recentExerciseIds(limit) {
 }
 function sessionsInRange(from, to) {
   return activeSessions().filter(s => s.id >= from && s.id <= to).length;
+}
+const maxWeight = e => Math.max(0, ...doneSets(e).map(s => s.weight || 0));
+
+// Modifie l'exercice d'une séance puis enregistre (supprime l'exercice s'il est vide)
+function updateEntry(date, entryId, fn) {
+  const s = cloneSession(date);
+  const e = s.entries.find(x => x.id === entryId);
+  if (!e) return null;
+  fn(e);
+  s.entries = s.entries.filter(x => x.kind !== 'sets' || (x.sets || []).length);
+  saveSession(s);
+  return e;
+}
+
+// ===== PILE DE PLAQUES =====
+// Comme sur une machine : les plaques légères en haut, la goupille choisit le poids.
+const STEP = 2.5;
+const plateLabel = v => (v ? fmtNum(v) : 'Sans');
+function stackHtml(values, pin, action, cls = '') {
+  return `<div class="stack ${cls}" role="group" aria-label="Pile de plaques">${values.map(v => {
+    const state = v === pin ? 'pin' : v < pin ? 'lifted' : '';
+    return `<button type="button" class="plate ${state}" data-v="${v}" onclick="${action}(${v})" aria-pressed="${v === pin}" aria-label="${v ? fmtNum(v) + ' kilos' : 'Sans poids'}">${plateLabel(v)}</button>`;
+  }).join('')}</div>`;
+}
+function windowAround(w, n = 5) {
+  const start = Math.max(0, w - STEP * Math.floor(n / 2));
+  return Array.from({ length: n }, (_, i) => start + i * STEP);
+}
+// Petite pile décorative : plus il y a de plaques levées, plus c'est lourd par rapport à tes habitudes
+function miniStack(e) {
+  if (e.kind !== 'sets') return `<span class="mini mini-icon">${icon('timer')}</span>`;
+  const hist = historyOf(e.exId).map(h => maxWeight(h.entry)).filter(Boolean);
+  const w = maxWeight(e);
+  let lit = 0;
+  if (w) {
+    const lo = Math.min(...hist, w), hi = Math.max(...hist, w);
+    lit = hi === lo ? 3 : 1 + Math.round(4 * (w - lo) / (hi - lo));
+  }
+  return `<span class="mini" aria-hidden="true">${Array.from({ length: 6 }, (_, i) =>
+    `<span class="${i < lit - 1 ? 'on' : i === lit - 1 ? 'pin' : ''}"></span>`).join('')}</span>`;
 }
 
 // ===== NAVIGATION =====
@@ -54,48 +95,114 @@ window.addEventListener('online', render);
 window.addEventListener('offline', render);
 
 // ===== ONGLET SÉANCE =====
+function chronoText() {
+  const s = sessionOf(UI.date);
+  if (UI.date !== isoDate() || !s || !s.createdAt) return '';
+  const min = Math.round((Date.now() - s.createdAt) / 60000);
+  return min >= 1 && min < 300 ? `${min} min` : '';
+}
+setInterval(() => { const el = $('#chrono'); if (el) el.textContent = chronoText(); }, 30000);
+
 function renderToday() {
   const today = isoDate();
   const isToday = UI.date === today;
   const entries = (sessionOf(UI.date) || {}).entries || [];
   const last = activeSessions().find(s => s.id < UI.date);
   const weekCount = sessionsInRange(isoDate(mondayOf(new Date())), today);
+  const current = entries.find(e => pendingIndex(e) >= 0);
 
   let html = `
-    <div class="day-head">
-      <div>
-        <div class="eyebrow">${isToday ? 'Aujourd’hui' : relDay(UI.date)}</div>
-        <h2>${esc(cap(fmtDay(UI.date)))}</h2>
+    <div class="page-head">
+      <div class="head-row">
+        <span class="eyebrow">${isToday ? cap(fmtDay(UI.date)) : cap(relDay(UI.date))}</span>
+        <span class="chrono" id="chrono">${chronoText()}</span>
       </div>
-      <label class="date-chip">${icon('cal')}Autre jour
-        <input type="date" value="${UI.date}" max="${today}" onchange="goToDay(this.value)" aria-label="Choisir un autre jour">
-      </label>
+      <div class="head-row">
+        <h1>${isToday ? 'Séance du jour' : `Séance du ${esc(fmtShort(UI.date))}`}</h1>
+        <label class="date-chip">${icon('cal')}Autre jour
+          <input type="date" value="${UI.date}" max="${today}" onchange="goToDay(this.value)" aria-label="Choisir un autre jour">
+        </label>
+      </div>
     </div>`;
 
   if (!entries.length) {
     html += `
       <div class="empty">
-        <p class="empty-title">${isToday ? 'Pas encore de sport aujourd’hui' : 'Pas de séance ce jour-là'}</p>
-        <p class="muted">${last ? `Dernière séance ${relDay(last.id)}` : 'Ta première séance commence ici.'}
-          ${isToday && weekCount ? `<br>Cette semaine : ${plural(weekCount, 'séance')}` : ''}</p>
-        <button class="btn-big" onclick="openPicker()">${icon('plus')}${isToday ? 'Commencer ma séance' : 'Ajouter un exercice'}</button>
+        <p class="empty-title">${isToday ? 'Pas encore de sport aujourd’hui.' : 'Pas de séance ce jour-là.'}</p>
+        <p class="muted">${last ? `Dernière séance ${relDay(last.id)}.` : 'Ta première séance commence ici.'}
+          ${isToday ? `<br>Cette semaine : ${weekCount} sur ${weeklyGoal()}.` : ''}</p>
+        <button class="btn-accent big" onclick="openPicker()">${icon('plus')}${isToday ? 'Commencer ma séance' : 'Ajouter un exercice'}</button>
       </div>`;
   } else {
-    html += `<ul class="entries">${entries.map(e => `
-      <li><button class="entry" onclick="editEntry('${esc(e.id)}')">
-        <span class="entry-main">
-          <span class="entry-name">${esc(e.name)}</span>
-          <div class="entry-sum">${esc(entrySummary(e))}</div>
-          ${e.note ? `<div class="entry-note">${esc(e.note)}</div>` : ''}
-        </span>${icon('chev')}
-      </button></li>`).join('')}</ul>
-      <button class="btn-big" onclick="openPicker()">${icon('plus')}Ajouter un exercice</button>
-      <p class="muted small center day-foot">${plural(entries.length, 'exercice')}${totalMinutes(entries) ? ` · ${totalMinutes(entries)} min de cardio / cours` : ''}</p>`;
+    html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e)).join('')}</div>
+      <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current ? 'Ajouter un autre exercice' : 'Exercice suivant'}</button>
+      ${entries.some(entryDone) ? `<p class="muted small center foot">${sessionFoot(entries)}</p>` : ''}`;
   }
   if (!isToday) html += `<p class="center"><button class="link" onclick="goToDay('${today}')">Revenir à aujourd’hui</button></p>`;
   $('#view').innerHTML = html;
 }
-const totalMinutes = entries => entries.reduce((t, e) => t + (e.kind !== 'sets' && e.duration ? e.duration : 0), 0);
+
+function sessionFoot(entries) {
+  const done = entries.filter(entryDone);
+  const sets = done.reduce((t, e) => t + (e.kind === 'sets' ? doneSets(e).length : 0), 0);
+  const min = done.reduce((t, e) => t + (e.kind !== 'sets' && e.duration ? e.duration : 0), 0);
+  return [plural(done.length, 'exercice'), sets && plural(sets, 'série'), min && `${min} min de cardio / cours`].filter(Boolean).join(' · ');
+}
+
+function entryRow(e) {
+  const pi = pendingIndex(e);
+  const sub = pi >= 0 && !doneSets(e).length ? `${plural(e.sets.length, 'série')} prévue${e.sets.length > 1 ? 's' : ''}` : entrySummary(e);
+  const mark = entryDone(e) && pi < 0 ? `<span class="row-mark">${icon('check')}</span>` : icon('chev');
+  return `<button class="row" onclick="openEntry('${esc(e.id)}')">${miniStack(e)}
+    <span class="row-main"><span class="row-name">${esc(e.name)}</span><span class="row-sub">${esc(sub)}</span>
+    ${e.note ? `<span class="row-note">${esc(e.note)}</span>` : ''}</span>${mark}</button>`;
+}
+
+// L'exercice en cours : une grande carte avec la pile et « Série faite »
+function currentCard(e) {
+  const i = pendingIndex(e);
+  const set = e.sets[i];
+  const w = set.weight || 0;
+  const id = esc(e.id);
+  return `<section class="now" aria-label="Exercice en cours">
+    ${stackHtml(windowAround(w), w, `pinCurrent.bind(null,'${id}')`, 'compact')}
+    <div class="now-main">
+      <div class="eyebrow">Série ${i + 1} sur ${e.sets.length}</div>
+      <h2 class="now-name">${esc(e.name)}</h2>
+      <button class="now-value" onclick="openSet('${id}',${i})" aria-label="Changer les chiffres de la série">
+        <span class="serif">${set.reps || '–'}</span><span class="now-unit">× ${w ? fmtNum(w) + ' kg' : 'sans poids'}</span>
+      </button>
+      <button class="btn-accent" onclick="finishSet('${id}')">${icon('check')}Série faite</button>
+      <div class="now-links">
+        <button onclick="addPlannedSet('${id}')">+ série</button>
+        <button onclick="finishAll('${id}')">Tout valider</button>
+        <button onclick="stopEntry('${id}')">Arrêter là</button>
+      </div>
+    </div>
+  </section>`;
+}
+
+function pinCurrent(entryId, v) {
+  updateEntry(UI.date, entryId, e => {
+    const i = pendingIndex(e);
+    // Le nouveau poids vaut pour cette série et les suivantes
+    for (let k = i; k < e.sets.length; k++) if (e.sets[k].done === false) e.sets[k].weight = v || null;
+  });
+}
+function finishSet(entryId) {
+  const e = updateEntry(UI.date, entryId, e => { e.sets[pendingIndex(e)].done = true; });
+  if (e) toast(pendingIndex(e) < 0 ? 'Exercice terminé' : `Série ${doneSets(e).length} faite`);
+}
+function finishAll(entryId) {
+  updateEntry(UI.date, entryId, e => e.sets.forEach(s => { s.done = true; }));
+  toast('Exercice terminé');
+}
+function addPlannedSet(entryId) {
+  updateEntry(UI.date, entryId, e => { e.sets.push({ ...e.sets[e.sets.length - 1], done: false }); });
+}
+function stopEntry(entryId) {
+  updateEntry(UI.date, entryId, e => { e.sets = e.sets.filter(s => s.done !== false); });
+}
 
 function goToDay(date) {
   if (!date) return;
@@ -154,11 +261,11 @@ function openCreate() {
       <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button></div>
     <label class="field"><span>Nom</span>
       <input class="input" id="new-name" value="${esc(name)}" maxlength="60" placeholder="ex. Presse à épaules"></label>
-    <p class="field"><span class="muted small">Ce que tu veux noter</span></p>
+    <p class="field"><span>Ce que tu veux noter</span></p>
     <div class="kinds" role="radiogroup">${Object.entries(KINDS).map(([k, v], i) => `
       <button class="kind${i === 0 ? ' active' : ''}" data-kind="${k}" role="radio" aria-checked="${i === 0}" onclick="selectKind(this)">
         <span class="kind-label">${v.label}</span><span class="kind-hint">${v.hint}</span></button>`).join('')}</div>
-    <button class="btn-big" onclick="createExercise()">Créer et noter</button>`);
+    <button class="btn-accent big" onclick="createExercise()">Créer et commencer</button>`);
   if (!name) $('#new-name').focus();
 }
 function selectKind(btn) {
@@ -174,83 +281,169 @@ function createExercise() {
   pickExercise(ex.id, ex);
 }
 
-// ===== SAISIE D'UN EXERCICE =====
 function pickExercise(id, exObj) {
   const ex = exObj || findExercise(id);
   const last = historyOf(ex.id)[0];
   const le = last && last.entry;
-  // On repart de la dernière fois : il suffit souvent de valider
-  draft = {
-    entryId: null, exId: ex.id, name: ex.name, kind: ex.kind, note: '',
-    sets: le && le.sets && le.sets.length ? le.sets.map(s => ({ ...s })) : [{ reps: 10, weight: null }],
-    duration: le && le.duration ? le.duration : (ex.kind === 'cardio' ? 20 : 30),
-    distance: le && le.distance ? le.distance : null,
-  };
-  openEditor(last);
+  if (ex.kind === 'sets') {
+    // On prévoit les séries de la dernière fois : il suffit ensuite de toucher « Série faite »
+    const base = le ? doneSets(le) : [];
+    const sets = (base.length ? base : [0, 1, 2].map(() => ({ reps: 10, weight: null })))
+      .map(s => ({ reps: s.reps ?? null, weight: s.weight ?? null, done: false }));
+    const s = cloneSession(UI.date);
+    s.entries.push({ id: 'e' + Date.now().toString(36), exId: ex.id, name: ex.name, kind: 'sets', note: '', sets });
+    saveSession(s);
+    closeSheet();
+    setTimeout(() => $('.now') && $('.now').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    return;
+  }
+  draft = { entryId: null, exId: ex.id, name: ex.name, kind: ex.kind, note: '',
+    duration: le && le.duration ? le.duration : (ex.kind === 'cardio' ? 20 : 30), distance: le && le.distance ? le.distance : null };
+  openTimeEditor(last);
 }
 
-function editEntry(entryId) {
+// ===== RÉGLER UNE SÉRIE (grande pile) =====
+function openSet(entryId, idx) {
   const e = (sessionOf(UI.date).entries || []).find(x => x.id === entryId);
   if (!e) return;
-  draft = JSON.parse(JSON.stringify({ sets: [{ reps: 10, weight: null }], duration: 30, distance: null, ...e, entryId: e.id }));
+  const set = e.sets[idx];
+  setDraft = { entryId, idx, reps: set.reps, weight: set.weight || 0, wasDone: set.done !== false };
   const last = historyOf(e.exId).find(h => h.date < UI.date);
-  openEditor(last);
+  const values = Array.from({ length: 81 }, (_, i) => i * STEP); // 0 à 200 kg
+  openSheet(`
+    <div class="sheet-head">
+      <div><div class="eyebrow">Série ${idx + 1} sur ${e.sets.length}</div><h3>${esc(e.name)}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
+    </div>
+    <div class="set-editor">
+      <div class="set-col">
+        <p class="label">Poids · touche une plaque</p>
+        <div class="stack-scroll" id="set-stack">${stackHtml(values, setDraft.weight, 'pinSet')}</div>
+      </div>
+      <div class="set-col reps-col">
+        <p class="label">Répétitions</p>
+        <button class="round-btn" onclick="stepReps(1)" aria-label="Une répétition de plus">${icon('plus')}</button>
+        <input class="reps-input serif" id="reps" inputmode="numeric" value="${setDraft.reps ?? ''}" placeholder="0" onchange="setDraft.reps=numOrNull(this.value)" onfocus="this.select()" aria-label="Répétitions">
+        <button class="round-btn" onclick="stepReps(-1)" aria-label="Une répétition de moins">${icon('minus')}</button>
+        <p class="weight-read" id="weight-read">${setDraft.weight ? fmtNum(setDraft.weight) + ' kg' : 'sans poids'}</p>
+      </div>
+    </div>
+    <p class="muted small">${last ? `La dernière fois (${relDay(last.date)}) : ${esc(entrySummary(last.entry))}` : 'Première fois sur cet exercice.'}</p>
+    <button class="btn-accent big" onclick="saveSet()">${setDraft.wasDone ? 'Enregistrer' : 'Valider la série'}</button>
+    ${setDraft.wasDone ? `<button class="link-danger" onclick="deleteSet()">Supprimer cette série</button>` : ''}`);
+  const pin = $('#set-stack .plate.pin');
+  if (pin) pin.scrollIntoView({ block: 'center' });
+}
+function pinSet(v) {
+  setDraft.weight = v;
+  document.querySelectorAll('#set-stack .plate').forEach(p => {
+    const pv = +p.dataset.v;
+    p.classList.toggle('pin', pv === v);
+    p.classList.toggle('lifted', pv < v);
+    p.setAttribute('aria-pressed', pv === v);
+  });
+  $('#weight-read').textContent = v ? fmtNum(v) + ' kg' : 'sans poids';
+}
+function stepReps(d) {
+  setDraft.reps = Math.max(0, (setDraft.reps || 0) + d) || null;
+  $('#reps').value = setDraft.reps ?? '';
+}
+function saveSet() {
+  setDraft.reps = numOrNull($('#reps').value);
+  const { entryId, idx, reps, weight, wasDone } = setDraft;
+  updateEntry(UI.date, entryId, e => {
+    const old = e.sets[idx];
+    // Les séries prévues ensuite suivent le nouveau poids (et les répétitions si elles étaient identiques)
+    for (let k = idx + 1; k < e.sets.length; k++) {
+      const s = e.sets[k];
+      if (s.done !== false) continue;
+      if (s.weight === old.weight) s.weight = weight || null;
+      if (s.reps === old.reps) s.reps = reps;
+    }
+    e.sets[idx] = { reps, weight: weight || null, done: true };
+  });
+  closeSheet();
+  toast(wasDone ? 'Modifié' : 'Série faite');
+}
+function deleteSet() {
+  updateEntry(UI.date, setDraft.entryId, e => { e.sets.splice(setDraft.idx, 1); });
+  closeSheet();
+  toast('Série supprimée');
 }
 
-function openEditor(last) {
+// ===== DÉTAIL D'UN EXERCICE DE LA SÉANCE =====
+function openEntry(entryId) {
+  const e = (sessionOf(UI.date).entries || []).find(x => x.id === entryId);
+  if (!e) return;
+  if (e.kind !== 'sets') {
+    draft = JSON.parse(JSON.stringify({ duration: 30, distance: null, ...e, entryId: e.id }));
+    openTimeEditor(historyOf(e.exId).find(h => h.date < UI.date));
+    return;
+  }
+  const id = esc(e.id);
+  openSheet(`
+    <div class="sheet-head">
+      <div><div class="eyebrow">${esc(entrySummary(e))}</div><h3>${esc(e.name)}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
+    </div>
+    <div class="set-list">${e.sets.map((s, i) => `
+      <button class="set-line" onclick="openSet('${id}',${i})">
+        <span class="set-n">${i + 1}</span>
+        <span class="set-val">${s.reps ?? '–'} × ${s.weight ? fmtNum(s.weight) + ' kg' : 'sans poids'}</span>
+        ${s.done === false ? '<span class="muted small">prévue</span>' : `<span class="row-mark">${icon('check')}</span>`}
+      </button>`).join('')}</div>
+    <button class="btn-outline" onclick="addPlannedSet('${id}');closeSheet()">${icon('plus')}Ajouter une série</button>
+    <label class="field" style="margin-top:16px"><span>Note</span>
+      <textarea class="input" id="entry-note" rows="2" maxlength="300" placeholder="Réglage de la machine, ressenti…">${esc(e.note || '')}</textarea></label>
+    <button class="btn-accent big" onclick="saveEntryNote('${id}')">Enregistrer</button>
+    <button class="link-danger" onclick="deleteEntry('${id}')">Supprimer cet exercice</button>`);
+}
+function saveEntryNote(entryId) {
+  const note = $('#entry-note').value.trim();
+  updateEntry(UI.date, entryId, e => { e.note = note; });
+  closeSheet();
+  toast('Enregistré');
+}
+function deleteEntry(entryId) {
+  const e = (sessionOf(UI.date).entries || []).find(x => x.id === entryId);
+  if (!e || !confirm(`Supprimer « ${e.name} » de cette séance ?`)) return;
+  const s = cloneSession(UI.date);
+  s.entries = s.entries.filter(x => x.id !== entryId);
+  saveSession(s);
+  draft = null;
+  closeSheet();
+  toast('Supprimé');
+}
+
+// ===== CARDIO & COURS : DURÉE (ET DISTANCE) =====
+const stepper = (value, onStep, onSet, placeholder, label) => `
+  <div class="stepper">
+    <button type="button" onclick="${onStep}(-1)" aria-label="Moins">${icon('minus')}</button>
+    <input class="serif" inputmode="decimal" value="${value === null || value === undefined ? '' : fmtNum(value)}" placeholder="${placeholder}" onchange="${onSet}(this.value)" onfocus="this.select()" aria-label="${label}">
+    <button type="button" onclick="${onStep}(1)" aria-label="Plus">${icon('plus')}</button>
+  </div>`;
+
+function openTimeEditor(last) {
   const isNew = !draft.entryId;
   openSheet(`
     <div class="sheet-head">
-      <div><h3>${esc(draft.name)}</h3>
-        <p class="muted small">${last ? `La dernière fois (${relDay(last.date)}) : ${esc(entrySummary(last.entry))}` : 'Première fois !'}</p></div>
+      <div><div class="eyebrow">${KINDS[draft.kind].label}</div><h3>${esc(draft.name)}</h3></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
     </div>
     <div id="editor-body"></div>
+    <p class="muted small">${last ? `La dernière fois (${relDay(last.date)}) : ${esc(entrySummary(last.entry))}` : 'Première fois !'}</p>
     <textarea class="input" id="draft-note" rows="1" maxlength="300" placeholder="Note (facultatif)">${esc(draft.note || '')}</textarea>
-    <button class="btn-big" onclick="saveDraft()">${isNew ? 'Enregistrer' : 'Enregistrer les changements'}</button>
-    ${isNew ? '' : `<button class="link-danger" onclick="deleteEntry()">Supprimer cet exercice</button>`}`);
+    <button class="btn-accent big" onclick="saveDraft()">${isNew ? 'C’est fait' : 'Enregistrer'}</button>
+    ${isNew ? '' : `<button class="link-danger" onclick="deleteEntry('${esc(draft.entryId)}')">Supprimer cet exercice</button>`}`);
   renderEditorBody();
 }
-
-const stepper = (value, onStep, onSet, placeholder, label) => `
-  <div class="stepper">
-    <button type="button" onclick="${onStep}(-1)" aria-label="Moins">−</button>
-    <input inputmode="decimal" value="${value === null || value === undefined ? '' : fmtNum(value)}" placeholder="${placeholder}" onchange="${onSet}(this.value)" onfocus="this.select()" aria-label="${label}">
-    <button type="button" onclick="${onStep}(1)" aria-label="Plus">+</button>
-  </div>`;
-
 function renderEditorBody() {
   const box = $('#editor-body');
   if (!box) return;
-  if (draft.kind === 'sets') {
-    box.innerHTML = `<div class="sets">
-      <div class="set-row head"><span></span><span>Répétitions</span><span>Poids (kg)</span><span></span></div>
-      ${draft.sets.map((s, i) => `
-        <div class="set-row">
-          <span class="set-n">${i + 1}</span>
-          ${stepper(s.reps, `stepSet.bind(null,${i},'reps')`, `setSet.bind(null,${i},'reps')`, '0', `Répétitions série ${i + 1}`)}
-          ${stepper(s.weight, `stepSet.bind(null,${i},'weight')`, `setSet.bind(null,${i},'weight')`, '—', `Poids série ${i + 1}`)}
-          ${draft.sets.length > 1 ? `<button class="icon-btn" onclick="removeSet(${i})" aria-label="Supprimer la série ${i + 1}">${icon('close')}</button>` : '<span></span>'}
-        </div>`).join('')}
-      <button class="btn-ghost" onclick="addSet()">+ Ajouter une série</button>
-      <p class="muted small" style="margin-top:8px">Laisse le poids vide pour un exercice au poids du corps.</p>
-    </div>`;
-  } else {
-    box.innerHTML = `
-      <div class="solo"><span>Durée (minutes)</span>${stepper(draft.duration, "stepField.bind(null,'duration',5)", "setField.bind(null,'duration')", '0', 'Durée en minutes')}</div>
-      ${draft.kind === 'cardio' ? `<div class="solo"><span>Distance (km, facultatif)</span>${stepper(draft.distance, "stepField.bind(null,'distance',0.5)", "setField.bind(null,'distance')", '—', 'Distance en kilomètres')}</div>` : ''}`;
-  }
+  box.innerHTML = `
+    <div class="solo"><span>Durée (minutes)</span>${stepper(draft.duration, "stepField.bind(null,'duration',5)", "setField.bind(null,'duration')", '0', 'Durée en minutes')}</div>
+    ${draft.kind === 'cardio' ? `<div class="solo"><span>Distance (km, facultatif)</span>${stepper(draft.distance, "stepField.bind(null,'distance',0.5)", "setField.bind(null,'distance')", '—', 'Distance en kilomètres')}</div>` : ''}`;
 }
-// Les boutons appellent ces fonctions avec (+1) ou (-1)
-function stepSet(i, field, dir) {
-  const step = field === 'reps' ? 1 : 2.5;
-  const cur = draft.sets[i][field];
-  draft.sets[i][field] = cur === null || cur === undefined ? (dir > 0 ? step : null) : Math.max(0, cur + dir * step) || null;
-  renderEditorBody();
-}
-function setSet(i, field, v) { draft.sets[i][field] = numOrNull(v); }
-function addSet() { draft.sets.push({ ...draft.sets[draft.sets.length - 1] }); renderEditorBody(); }
-function removeSet(i) { draft.sets.splice(i, 1); renderEditorBody(); }
 function stepField(field, step, dir) {
   const cur = draft[field];
   draft[field] = cur === null || cur === undefined ? (dir > 0 ? step : null) : Math.max(0, cur + dir * step) || null;
@@ -259,59 +452,59 @@ function stepField(field, step, dir) {
 function setField(field, v) { draft[field] = numOrNull(v); }
 
 function saveDraft() {
-  // Une saisie clavier non validée (champ encore actif) doit être prise en compte
   if (document.activeElement && document.activeElement.onchange) document.activeElement.onchange();
-  const entry = { id: draft.entryId || 'e' + Date.now().toString(36), exId: draft.exId, name: draft.name, kind: draft.kind, note: $('#draft-note').value.trim() };
-  if (draft.kind === 'sets') entry.sets = draft.sets.filter(s => s.reps || s.weight).map(s => ({ reps: s.reps ?? null, weight: s.weight ?? null }));
-  else { entry.duration = draft.duration ?? null; entry.distance = draft.kind === 'cardio' ? draft.distance ?? null : null; }
+  const entry = { id: draft.entryId || 'e' + Date.now().toString(36), exId: draft.exId, name: draft.name, kind: draft.kind, note: $('#draft-note').value.trim(),
+    duration: draft.duration ?? null, distance: draft.kind === 'cardio' ? draft.distance ?? null : null };
   const s = cloneSession(UI.date);
   const i = s.entries.findIndex(e => e.id === entry.id);
   if (i >= 0) s.entries[i] = entry; else s.entries.push(entry);
   saveSession(s);
   draft = null;
   closeSheet();
-  toast(i >= 0 ? 'Modifié' : 'Enregistré 💪');
-}
-
-function deleteEntry() {
-  if (!confirm(`Supprimer « ${draft.name} » de cette séance ?`)) return;
-  const s = cloneSession(UI.date);
-  s.entries = s.entries.filter(e => e.id !== draft.entryId);
-  saveSession(s);
-  draft = null;
-  closeSheet();
-  toast('Supprimé');
+  toast(i >= 0 ? 'Modifié' : 'Enregistré');
 }
 
 // ===== ONGLET SUIVI =====
 function renderTrack() {
-  const today = isoDate();
   const now = new Date();
   if (!UI.month) UI.month = new Date(now.getFullYear(), now.getMonth(), 1);
-  const sessions = activeSessions();
-  const week = sessionsInRange(isoDate(mondayOf(now)), today);
-  const month = sessionsInRange(isoDate(new Date(now.getFullYear(), now.getMonth(), 1)), today);
-  const last = sessions[0];
+  const month = sessionsInRange(isoDate(new Date(now.getFullYear(), now.getMonth(), 1)), isoDate());
+  const monthName = now.toLocaleDateString('fr-FR', { month: 'long' });
 
-  let html = `
-    <div class="day-head"><div><div class="eyebrow">Suivi</div><h2>Ma régularité</h2></div></div>
-    <div class="stats">
-      <div class="stat"><div class="stat-val">${week}</div><div class="stat-label">cette semaine</div></div>
-      <div class="stat"><div class="stat-val">${month}</div><div class="stat-label">ce mois-ci</div></div>
-      <div class="stat"><div class="stat-val sm">${last ? cap(relDay(last.id)) : '—'}</div><div class="stat-label">dernière séance</div></div>
+  $('#view').innerHTML = `
+    <div class="page-head">
+      <div class="head-row"><span class="eyebrow">${cap(monthName)}</span></div>
+      <h1>${month ? `${plural(month, 'séance')}, empilée${month > 1 ? 's' : ''}` : 'Pas encore de séance ce mois-ci'}</h1>
+      <p class="muted small">Une plaque par séance, une colonne par semaine (en vert : cette semaine). Objectif : ${weeklyGoal()} par semaine, en pointillés.</p>
     </div>
+    <section class="card">${weeksHtml()}</section>
     <section class="card">${calendarHtml()}</section>
     <section class="card">
-      <h3 class="card-title">Séances par semaine</h3>
-      <p class="card-sub">12 dernières semaines · touche une barre pour le détail</p>
-      <div class="chart" id="weeks-chart"></div>
-    </section>
-    <section class="card">
-      <h3 class="card-title">Par exercice</h3>
+      <h2 class="card-title">Par exercice</h2>
       ${exerciseListHtml()}
     </section>`;
-  $('#view').innerHTML = html;
-  barChart($('#weeks-chart'), weeklyData());
+}
+
+function weeksHtml() {
+  const goal = weeklyGoal();
+  const thisMonday = mondayOf(new Date());
+  const counts = {};
+  for (const s of activeSessions()) {
+    const k = isoDate(mondayOf(toDate(s.id)));
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  const cols = [];
+  for (let i = 7; i >= 0; i--) {
+    const mon = addDays(thisMonday, -7 * i);
+    const n = counts[isoDate(mon)] || 0;
+    const slots = Math.max(goal, n, 1);
+    const plates = Array.from({ length: slots }, (_, k) =>
+      `<span class="wplate ${k < n ? 'full' : 'goal'}"></span>`).join('');
+    const label = `${mon.getDate()}/${mon.getMonth() + 1}`;
+    cols.push(`<div class="wcol${i === 0 ? ' now' : ''}" role="img" aria-label="${i === 0 ? 'Cette semaine' : 'Semaine du ' + fmtShort(isoDate(mon))} : ${n ? plural(n, 'séance') : 'aucune séance'}">
+      <span class="wcount">${n || ''}</span><div class="wstack">${plates}</div><span class="wlabel">${label}</span></div>`);
+  }
+  return `<div class="weeks">${cols.join('')}</div>`;
 }
 
 function calendarHtml() {
@@ -320,10 +513,10 @@ function calendarHtml() {
   const y = m.getFullYear(), mo = m.getMonth();
   const daysInMonth = new Date(y, mo + 1, 0).getDate();
   const start = mondayOf(m);
+  const end = addDays(mondayOf(new Date(y, mo, daysInMonth)), 6);
   const done = new Set(activeSessions().map(s => s.id));
   const isCurrent = y === new Date().getFullYear() && mo === new Date().getMonth();
   let cells = '';
-  const end = addDays(mondayOf(new Date(y, mo, daysInMonth)), 6);
   for (let d = start; d <= end; d = addDays(d, 1)) {
     const id = isoDate(d);
     if (d.getMonth() !== mo) { cells += `<span class="cal-cell out"></span>`; continue; }
@@ -339,26 +532,26 @@ function calendarHtml() {
   return `
     <div class="cal-head">
       <button class="icon-btn" onclick="shiftMonth(-1)" aria-label="Mois précédent">${icon('prev')}</button>
-      <h3 class="card-title">${monthName}</h3>
-      <button class="icon-btn" onclick="shiftMonth(1)" aria-label="Mois suivant" ${isCurrent ? 'disabled style="opacity:.3"' : ''}>${icon('chev')}</button>
+      <h2 class="card-title">${cap(monthName)}</h2>
+      <button class="icon-btn" onclick="shiftMonth(1)" aria-label="Mois suivant" ${isCurrent ? 'disabled' : ''}>${icon('chev')}</button>
     </div>
     <div class="cal-grid">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => `<span class="cal-dow">${d}</span>`).join('')}${cells}</div>
     <div class="cal-foot">
-      <span><span class="legend-dot" style="background:var(--accent)"></span>${plural(active, 'jour')} de sport</span>
-      <span><span class="legend-dot" style="border:1.5px solid var(--text-faint)"></span>${lastDay - active} sans sport</span>
+      <span><span class="legend-dot on"></span>${plural(active, 'jour')} de sport</span>
+      <span><span class="legend-dot"></span>${Math.max(0, lastDay - active)} sans sport</span>
     </div>
     ${dayDetailHtml()}`;
 }
 
 function dayDetailHtml() {
-  if (!UI.selDay) return `<p class="muted small" style="margin-top:10px">Touche un jour pour voir ce que tu as fait.</p>`;
-  const entries = (sessionOf(UI.selDay) || {}).entries || [];
+  if (!UI.selDay) return `<p class="muted small cal-hint">Touche un jour pour voir ce que tu as fait.</p>`;
+  const entries = ((sessionOf(UI.selDay) || {}).entries || []).filter(entryDone);
   return `<div class="day-detail">
     <p class="day-detail-title">${esc(cap(fmtDay(UI.selDay)))}</p>
     ${entries.length
       ? entries.map(e => `<div class="day-line"><span>${esc(e.name)}</span><span>${esc(entrySummary(e))}</span></div>`).join('')
-        + `<button class="btn-line" onclick="goToDay('${UI.selDay}')">Voir ou modifier la séance</button>`
-      : `<p class="muted small">Pas de sport ce jour-là.</p><button class="btn-line" onclick="goToDay('${UI.selDay}')">Ajouter une séance ce jour-là</button>`}
+        + `<button class="btn-outline" onclick="goToDay('${UI.selDay}')">Voir ou modifier la séance</button>`
+      : `<p class="muted small">Pas de sport ce jour-là.</p><button class="btn-outline" onclick="goToDay('${UI.selDay}')">Ajouter une séance ce jour-là</button>`}
   </div>`;
 }
 
@@ -371,34 +564,13 @@ function shiftMonth(n) {
   render();
 }
 
-function weeklyData() {
-  const thisMonday = mondayOf(new Date());
-  const counts = {};
-  for (const s of activeSessions()) {
-    const k = isoDate(mondayOf(toDate(s.id)));
-    counts[k] = (counts[k] || 0) + 1;
-  }
-  const out = [];
-  for (let i = 11; i >= 0; i--) {
-    const mon = addDays(thisMonday, -7 * i);
-    const k = isoDate(mon);
-    const v = counts[k] || 0;
-    out.push({
-      label: i === 0 ? 'cette sem.' : `${mon.getDate()}/${mon.getMonth() + 1}`,
-      value: v,
-      tip: `${i === 0 ? 'Cette semaine' : `Semaine du ${esc(fmtShort(k))}`}<br><b>${v ? plural(v, 'séance') : 'Aucune séance'}</b>`,
-    });
-  }
-  return out;
-}
-
 // Valeur suivie pour un exercice : charge max, total de répétitions, ou durée
 function metricFor(kind, hist) {
   if (kind === 'sets') {
-    const withWeight = hist.some(h => (h.entry.sets || []).some(s => s.weight));
+    const withWeight = hist.some(h => doneSets(h.entry).some(s => s.weight));
     return withWeight
-      ? { title: 'Charge max (kg)', fmt: v => `${fmtNum(v)} kg`, get: e => Math.max(0, ...(e.sets || []).map(s => s.weight || 0)) || null }
-      : { title: 'Répétitions au total', fmt: v => `${fmtNum(v)} rép.`, get: e => (e.sets || []).reduce((t, s) => t + (s.reps || 0), 0) || null };
+      ? { title: 'Charge max (kg)', fmt: v => `${fmtNum(v)} kg`, get: e => maxWeight(e) || null }
+      : { title: 'Répétitions au total', fmt: v => `${fmtNum(v)} rép.`, get: e => doneSets(e).reduce((t, s) => t + (s.reps || 0), 0) || null };
   }
   return { title: 'Durée (minutes)', fmt: v => `${fmtNum(v)} min`, get: e => e.duration || null };
 }
@@ -406,19 +578,20 @@ function metricFor(kind, hist) {
 function exerciseListHtml() {
   const byEx = new Map();
   for (const s of activeSessions()) for (const e of s.entries) {
+    if (!entryDone(e)) continue;
     if (!byEx.has(e.exId)) byEx.set(e.exId, { id: e.exId, name: e.name, kind: e.kind, last: s.id, entry: e, count: 0 });
     byEx.get(e.exId).count++;
   }
   if (!byEx.size) return `<p class="muted small">Tes exercices apparaîtront ici après ta première séance.</p>`;
-  return `<ul class="ex-list">${[...byEx.values()].map(x => {
+  return `<div class="ex-list">${[...byEx.values()].map(x => {
     const metric = metricFor(x.kind, historyOf(x.id));
     const v = metric.get(x.entry);
-    return `<li><button class="ex-item" onclick="openExercise('${esc(x.id)}')">
-      <span class="ex-item-main"><div class="ex-item-name">${esc(x.name)}</div>
-      <div class="ex-item-sub">${x.count} fois · ${relDay(x.last)}</div></span>
-      <span class="ex-item-val">${v ? metric.fmt(v) : ''}</span>${icon('chev')}
-    </button></li>`;
-  }).join('')}</ul>`;
+    return `<button class="row flat" onclick="openExercise('${esc(x.id)}')">${miniStack(x.entry)}
+      <span class="row-main"><span class="row-name">${esc(x.name)}</span>
+      <span class="row-sub">${x.count} fois · ${relDay(x.last)}</span></span>
+      <span class="row-val">${v ? metric.fmt(v) : ''}</span>${icon('chev')}
+    </button>`;
+  }).join('')}</div>`;
 }
 
 function openExercise(exId) {
@@ -430,17 +603,24 @@ function openExercise(exId) {
     .map(h => ({ date: h.date, value: metric.get(h.entry), entry: h.entry }))
     .filter(p => p.value !== null)
     .map(p => ({ ...p, tip: `${esc(fmtShort(p.date))}<br><b>${esc(metric.fmt(p.value))}</b><br>${esc(entrySummary(p.entry))}` }));
+  let story = '';
+  if (pts.length >= 2) {
+    const a = pts[0].value, b = pts[pts.length - 1].value, diff = b - a;
+    story = diff > 0 ? `De ${metric.fmt(a)} à <b class="accent">${metric.fmt(b)}</b> depuis le ${esc(fmtDM(pts[0].date))}.`
+      : diff < 0 ? `De ${metric.fmt(a)} à ${metric.fmt(b)} depuis le ${esc(fmtDM(pts[0].date))}.`
+      : `Stable à ${metric.fmt(b)} depuis le ${esc(fmtDM(pts[0].date))}.`;
+  }
   openSheet(`
     <div class="sheet-head">
-      <div><h3>${esc(first.name)}</h3>
-        <p class="muted small">${plural(hist.length, 'séance')} depuis le ${esc(fmtLong(hist[hist.length - 1].date))}</p></div>
+      <div><div class="eyebrow">${plural(hist.length, 'séance')}</div><h3>${esc(first.name)}</h3></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
     </div>
-    <p class="card-title">${metric.title}</p>
+    ${story ? `<p class="story">${story}</p>` : ''}
+    <p class="label">${metric.title}</p>
     ${pts.length >= 2 ? `<div class="chart" id="ex-chart"></div>` : `<p class="muted small">La courbe apparaîtra à partir de 2 séances.</p>`}
     <ul class="history">${hist.map(h => `
-      <li><span class="h-date">${esc(cap(fmtDay(h.date)))}</span><br>${esc(entrySummary(h.entry))}
-      ${h.entry.note ? `<br><span class="h-note">${esc(h.entry.note)}</span>` : ''}</li>`).join('')}</ul>`);
+      <li><span class="h-date">${esc(cap(fmtDay(h.date)))}</span><span>${esc(entrySummary(h.entry))}</span>
+      ${h.entry.note ? `<span class="h-note">${esc(h.entry.note)}</span>` : ''}</li>`).join('')}</ul>`);
   if (pts.length >= 2) lineChart($('#ex-chart'), pts);
 }
 
@@ -448,15 +628,28 @@ function openExercise(exId) {
 function openMenu() {
   openSheet(`
     <div class="sheet-head">
-      <div><h3>Mon compte</h3><p class="muted small">${esc(Data.user.email)}</p></div>
+      <div><div class="eyebrow">Mon compte</div><h3>${esc(Data.user.email)}</h3></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="Fermer">${icon('close')}</button>
     </div>
-    ${DEMO ? `<p class="demo-note" style="margin:0 0 12px">Mode démo : les données sont factices et restent sur cet appareil.</p>` : ''}
-    <div style="display:grid;gap:8px">
+    ${DEMO ? `<p class="demo-note">Mode démo : les données sont factices et restent sur cet appareil.</p>` : ''}
+    <div class="goal">
+      <span>Objectif par semaine</span>
+      <div class="stepper small">
+        <button type="button" onclick="changeGoal(-1)" aria-label="Moins">${icon('minus')}</button>
+        <span class="serif" id="goal-val">${weeklyGoal()}</span>
+        <button type="button" onclick="changeGoal(1)" aria-label="Plus">${icon('plus')}</button>
+      </div>
+    </div>
+    <div class="menu-list">
       <button class="btn-line" onclick="openImport()">Importer l’ancienne FitCoach</button>
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">Réinitialiser la démo</button>` : ''}
       <button class="btn-line" onclick="logout()">Se déconnecter</button>
     </div>`);
+}
+function changeGoal(d) {
+  const g = Math.min(7, Math.max(1, weeklyGoal() + d));
+  savePrefs({ weeklyGoal: g });
+  $('#goal-val').textContent = g;
 }
 function logout() { closeSheet(); Backend.logout(); }
 
