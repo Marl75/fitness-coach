@@ -153,6 +153,9 @@ const I18N = {
 const LANG_KEY = 'fitcoach-lang';
 let currentLang = 'fr';
 try {
+  // ?lang=en ou ?lang=fr dans l'adresse force la langue (et la mémorise)
+  const urlLang = new URLSearchParams(location.search).get('lang');
+  if (urlLang === 'en' || urlLang === 'fr') localStorage.setItem(LANG_KEY, urlLang);
   const saved = localStorage.getItem(LANG_KEY);
   currentLang = saved === 'en' || saved === 'fr' ? saved
     : ((navigator.language || 'fr').toLowerCase().startsWith('fr') ? 'fr' : 'en');
