@@ -1,12 +1,24 @@
 # Routine
 
-(anciennement FitCoach — l'adresse reste marl75.github.io/fitness-coach)
+**Live app: [marl75.github.io/fitness-coach](https://marl75.github.io/fitness-coach/)** · available in English and French
 
-Petite appli (PWA) pour noter ses séances de sport et suivre sa régularité.
+**Try it without an account: [demo mode](https://marl75.github.io/fitness-coach/?demo)** (fake data, kept in your browser)
 
-- **Séance** : on ajoute les exercices au fil de la séance ; l'appli propose ce qui a été fait la dernière fois.
-- **Suivi** : calendrier des jours avec et sans sport, séances par semaine, progression par exercice.
+(Formerly FitCoach; the address is unchanged.)
 
-Données : Firebase (Authentication e-mail/mot de passe + Firestore), configuration dans `js/config.js`,
-règles de sécurité dans `firestore.rules`. Sans configuration (ou avec `?demo` dans l'adresse),
-l'appli tourne en mode démo avec des données factices gardées dans le navigateur.
+A small progressive web app to log workouts and keep track of your consistency.
+
+## Features
+
+- **Workout**: add exercises as you go; the app suggests what you did last time
+- **One set at a time**, with a visual weight stack to pick the load and quick buttons for reps
+- **Exercise picker** with categories, favourites and duplicate detection; unused exercises can be hidden
+- **Log another day** from a calendar showing the days you trained
+- **Progress**: calendar of days with and without exercise, workouts per week against a goal, progress per exercise
+- **Dark mode**
+
+## Stack
+
+- Plain HTML, CSS and JavaScript, no build step
+- [Firebase](https://firebase.google.com/) Authentication (email and password) and Firestore; configuration in `js/config.js`, security rules in `firestore.rules`
+- Without a configuration, or with `?demo` in the address, the app runs in demo mode with fake data kept in the browser
