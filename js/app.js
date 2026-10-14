@@ -194,7 +194,7 @@ function currentCard(e) {
     <div class="now-links">
       <button onclick="finishAll('${id}')">${t('validateAll')}</button>
       <button class="tips-link" onclick="openTips('${esc(e.exId)}')">${t('tipsLink')}</button>
-      <button onclick="openEntry('${id}')">${t('setup')} · ${t('comment').toLowerCase()}</button>
+      <button onclick="openEntry('${id}')">${t('details')}</button>
     </div>
   </section>`;
 }
