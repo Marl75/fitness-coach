@@ -122,7 +122,7 @@ function renderToday() {
   } else {
     html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e)).join('')}</div>
       <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current ? t('addAnother') : t('nextExercise')}</button>
-      ${quickFavs()}
+      ${current ? '' : quickFavs()}
       ${entries.some(entryDone) ? `<p class="muted small center foot">${sessionFoot(entries)}</p>` : ''}`;
   }
   if (!isToday) html += `<p class="center"><button class="link" onclick="goToDay('${today}')">${t('backToday')}</button></p>`;
