@@ -147,6 +147,10 @@ function saveCustomExercise(ex) {
   Backend.put('exercises', id, clean(doc));
 }
 
+function deleteCustomExercise(id) {
+  Backend.del('exercises', id);
+}
+
 const prefs = () => Data.settings.find(s => s.id === 'prefs') || {};
 const weeklyGoal = () => prefs().weeklyGoal || 3;
 function savePrefs(patch) {

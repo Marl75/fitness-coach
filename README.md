@@ -20,6 +20,9 @@ A small progressive web app to log workouts and keep track of your consistency.
 - **A picture for every exercise**: a line figure doing the movement, with the muscles it works highlighted in green (custom exercises get a generic figure with the muscles you chose)
 - **Goals per muscle**: mark muscles to develop or to go easy on (e.g. upper traps); muscles to go easy on show in orange with a warning, and a “My goals” filter lists the best-matching exercises first
 - **Good form tips** for each exercise (do / avoid, plus a tip for your muscle goals), only from reliable sources cited on the card (ExRx.net, Concept2, NSCA, studies), and personal notes kept across sessions
+- **Muscles this week** (Progress tab): sets per muscle against the benchmarks of at least 10 sets and 2 sessions per week (ACSM 2026), with alerts for muscles to develop that fall behind and muscles to go easy on
+- **Progression suggestions**: when you beat your planned reps on every set, the app suggests adding 2 to 10% (ACSM 2009) and can apply it to the planned sets
+- **My custom exercises**: link them to an exercise from the list (history, favourites and notes move over) or set their muscles
 - **Custom exercises and variants** with the details you choose; in French, catalogue exercises also show their English name
 - **Exercise picker** with categories, favourites and duplicate detection; unused exercises can be hidden
 - **Log another day** from a calendar showing the days you trained

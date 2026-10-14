@@ -311,6 +311,34 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .sets-actions svg { width: 16px; height: 16px; }
 .now.sets .now-links { margin-top: 6px; }
 
+/* Bilan par muscle */
+.malerts { list-style: none; margin: 10px 0 12px; padding: 10px 12px; border-radius: 14px; background: rgba(240, 180, 74, 0.08); border: 1px solid rgba(240, 180, 74, 0.35); }
+.malerts li { font-size: 14px; padding: 3px 0; }
+.mrow { padding: 8px 0; }
+.mrow-top { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin-bottom: 5px; }
+.mname { font-weight: 700; }
+.mgoal { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.mgoal.warn { color: var(--warn); }
+.mval { font-weight: 700; white-space: nowrap; }
+.mbar { position: relative; display: flex; height: 10px; border-radius: 5px; background: var(--surface-2); overflow: visible; }
+.mbar .main { background: var(--steel-2); border-radius: 5px 0 0 5px; }
+.mbar .sec { background: var(--steel); }
+.mrow.up .mbar .main { background: var(--accent); }
+.mrow.warn .mbar .main { background: var(--warn); }
+.mbar .target { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text); border-radius: 1px; }
+/* Suggestion de progression */
+.progress-tip { margin: 6px 0 8px; padding: 12px 14px; border-radius: 16px; background: var(--accent-soft); border: 1px solid rgba(143, 227, 192, 0.35); font-size: 14px; line-height: 1.4; }
+.progress-tip .btn-accent { margin-top: 10px; height: 42px; font-size: 14px; }
+.progress-tip .tips-src { margin-top: 8px; }
+/* Mes exercices créés */
+.myex { padding: 14px 0; border-bottom: 1px solid var(--surface-2); }
+.myex-top { display: flex; gap: 12px; align-items: center; }
+.myex-text { display: flex; flex-direction: column; min-width: 0; }
+.myex-sim { margin: 10px 0 0; color: var(--text-dim); }
+.myex-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.myex-actions .btn-accent { height: 40px; font-size: 14px; }
+.myex .chips.wrap { margin: 10px 0 0; }
+
 /* ===== Suivi ===== */
 .card { background: var(--surface); border-radius: 22px; padding: 18px; margin-bottom: 14px; }
 .card-title { font-size: 24px; margin-bottom: 10px; }

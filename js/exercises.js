@@ -71,7 +71,7 @@ const CATALOG = [
   ['tirage-horizontal', 'Tirage horizontal (rowing assis)', 'upper', 'sets', ['seated row', 'rowing assis', 'tirage bas']],
   ['row-haltere', 'Rowing haltère', 'upper', 'sets', ['dumbbell row', 'rowing unilateral']],
   ['pullup', 'Traction assistée', 'upper', 'sets', ['pull up', 'traction', 'tractions', 'gravitron']],
-  ['face-pull', 'Face pull à la poulie', 'upper', 'sets', ['face pull']],
+  ['face-pull', 'Face pull à la poulie', 'upper', 'sets', ['face pull', 'tire de corde', 'tirage corde']],
   ['dev-couche', 'Développé couché', 'upper', 'sets', ['bench press', 'developpe couche']],
   ['dev-incline', 'Développé incliné haltères', 'upper', 'sets', ['incline press']],
   ['devmili', 'Développé militaire', 'upper', 'sets', ['shoulder press', 'presse epaules', 'developpe epaules']],
@@ -102,7 +102,7 @@ const CATALOG = [
   // Abdos & gainage
   ['crunch', 'Crunch', 'core', 'sets', ['abdos', 'sit up']],
   ['crunch-poulie', 'Crunch à la poulie', 'core', 'sets'],
-  ['releve-jambes', 'Relevé de jambes', 'core', 'sets', ['leg raise']],
+  ['releve-jambes', 'Relevé de jambes', 'core', 'sets', ['leg raise', 'montee de genoux', 'releve de genoux', 'knee raise']],
   ['russian', 'Russian twist', 'core', 'sets'],
   ['planche', 'Planche (gainage)', 'core', 'time', ['plank', 'gainage']],
   ['planche-lat', 'Planche latérale', 'core', 'time', ['side plank']],

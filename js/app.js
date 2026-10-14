@@ -181,6 +181,7 @@ function currentCard(e) {
         ${last ? `<p class="now-last">${esc(t('lastShort', { what: entrySummary(last.entry) }))}</p>` : ''}</div>
     </div>
     ${setup ? `<p class="now-setup">${esc(setup)}</p>` : ''}
+    ${i >= 0 ? progressionHtml(e.exId, e.id) : ''}
     <div class="sets-grid">
       <div class="srow hd"><span class="sn">#</span><span>${t('colWeight')}</span><span>${t('colReps')}</span><span></span></div>
       ${rows}
@@ -471,7 +472,7 @@ function openCreate(pre = {}) {
   createConfirm = false;
   const kind = pre.kind || 'sets';
   createState = { kind, fields: pre.fields ? [...pre.fields] : [...(DEFAULT_FIELDS[kind] || [])], muscles: [...(pre.muscles || [])],
-    fieldsTouched: !!pre.fields, variant: !!pre.base };
+    fieldsTouched: !!pre.fields, variant: !!pre.base, baseId: pre.baseId };
   const groupFor = ['upper', 'lower', 'core', 'cardio', 'class'];
   openSheet(`
     <div class="sheet-head"><h3>${pre.base ? t('variant') : t('newExercise')}</h3>
@@ -562,6 +563,7 @@ function createExercise() {
   if (kind !== 'sets') ex.fields = fields.length ? fields : DEFAULT_FIELDS[kind];
   if (muscles.length) ex.muscles = muscles;
   if (g) ex.group = g.dataset.g;
+  if (createState.baseId) ex.variantOf = createState.baseId;
   saveCustomExercise(ex);
   toast(t('created', { name }));
   pickExercise(ex.id, { ...ex, group: ex.group || 'custom', custom: true });
@@ -571,7 +573,7 @@ function openVariant(exId) {
   const ex = findExercise(exId);
   if (!ex) return;
   openCreate({ name: t('variantName', { name: exLabel(ex) }), kind: ex.kind, group: ex.group === 'custom' ? null : ex.group,
-    fields: ex.kind === 'sets' ? null : fieldsFor(exId, ex.kind), muscles: musclesOf(ex)[0], base: exLabel(ex) });
+    fields: ex.kind === 'sets' ? null : fieldsFor(exId, ex.kind), muscles: musclesOf(ex)[0], base: exLabel(ex), baseId: exId });
 }
 
 // ===== CHAMPS D'UN EXERCICE =====
@@ -1027,6 +1029,7 @@ function renderTrack() {
       <p class="muted small">${t('trackHint', { goal: weeklyGoal() })}</p>
     </div>
     <section class="card">${weeksHtml()}</section>
+    <section class="card">${musclesCardHtml()}</section>
     <section class="card">${calendarHtml()}</section>
     <section class="card">
       <h2 class="card-title">${t('byExercise')}</h2>
@@ -1181,6 +1184,7 @@ function openExercise(exId) {
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     ${story ? `<p class="story">${story}</p>` : ''}
+    ${progressionHtml(exId)}
     <p class="label">${metric.title}</p>
     ${pts.length >= 2 ? `<div class="chart" id="ex-chart"></div>` : `<p class="muted small">${t('curveLater')}</p>`}
     <ul class="history">${hist.map(h => `
@@ -1188,6 +1192,7 @@ function openExercise(exId) {
       ${setupSummary(h.entry.setup) ? `<span class="h-setup">${esc(setupSummary(h.entry.setup))}</span>` : ''}
       ${h.entry.note ? `<span class="h-note">${esc(h.entry.note)}</span>` : ''}</li>`).join('')}</ul>
     <button class="btn-outline" onclick="openTips('${esc(exId)}')">${t('tipsLink')}</button>
+    ${(findExercise(exId) || {}).custom ? `<button class="btn-outline" onclick="openAttach('${esc(exId)}')">${t('attachPick')}</button>` : ''}
     ${findExercise(exId) ? `<button class="btn-outline" onclick="openVariant('${esc(exId)}')">${icon('plus')}${t('variant')}</button>` : ''}`);
   if (pts.length >= 2) lineChart($('#ex-chart'), pts);
 }
@@ -1211,6 +1216,7 @@ function openMenu() {
     <div class="goal"><span>${t('language')}</span>${langSwitchHtml()}</div>
     <div class="menu-list">
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
+      <button class="btn-line" onclick="openMyExercises()">${t('myExercises')}</button>
       <button class="btn-line" onclick="openGoals()">${t('goalsTitle')}${goalsSummary() ? `<span class="btn-sub">${esc(goalsSummary())}</span>` : ''}</button>
       <button class="btn-line" onclick="logout()">${t('logout')}</button>
     </div>`);
