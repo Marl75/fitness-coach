@@ -13,7 +13,7 @@ TMP=$(mktemp -d)
 git worktree add -q "$TMP/main" origin/main -B main-beta-publish
 trap 'cd "$ROOT"; git worktree remove --force "$TMP/main"; git branch -q -D main-beta-publish 2>/dev/null; rm -rf "$TMP"' EXIT
 rm -rf "$TMP/main/beta" && mkdir "$TMP/main/beta"
-git archive HEAD -- index.html manifest.json sw.js css js tests icon-*.png | tar -x -C "$TMP/main/beta"
+git archive HEAD -- index.html privacy-policy.html manifest.json sw.js css js tests icon-*.png | tar -x -C "$TMP/main/beta"
 B="$TMP/main/beta"
 # Marquer la version de test : drapeau, bandeau, nom, copies hors connexion à part
 perl -0pi -e 's#<script src="js/config\.js#<script>window.BETA = true;</script>\n<script src="js/config.js#' "$B/index.html"

@@ -83,6 +83,7 @@ function openMenu() {
       <button class="btn-line" onclick="openRoutines()">${t('myRoutines')}</button>
       <button class="btn-line" onclick="openMyExercises()">${t('myExercises')}</button>
       <button class="btn-quiet" onclick="logout()">${t('logout')}</button>
+      <a class="privacy-link" href="privacy-policy.html" target="_blank" rel="noopener">${t('privacy')}</a>
     </div>`);
 }
 // Pseudo affiché à la place de l'e-mail (la connexion reste par e-mail)

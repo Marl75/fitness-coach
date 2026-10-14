@@ -7,6 +7,7 @@ startAuth(user => {
   $('#app').classList.toggle('hidden', !user);
   $('#nav').classList.toggle('hidden', !user);
   $('#demo-note').classList.toggle('hidden', !DEMO);
+  usageRecorded = false; // nouvelle connexion : une visite à compter
   if (user) { UI.date = isoDate(); render(); }
   else hideSheet();
 });

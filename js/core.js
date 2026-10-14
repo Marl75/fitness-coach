@@ -81,7 +81,7 @@ function render() {
   $('#sync').classList.toggle('hidden', !(Data.pending || !navigator.onLine) || DEMO);
   if (UI.tab === 'today') renderToday(); else renderTrack();
 }
-onDataChange = () => { render(); if (sheetRefresh) sheetRefresh(); };
+onDataChange = () => { render(); if (sheetRefresh) sheetRefresh(); scheduleVisit(); };
 window.addEventListener('online', render);
 window.addEventListener('offline', render);
 
