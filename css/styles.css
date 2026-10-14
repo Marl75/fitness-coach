@@ -264,6 +264,28 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .seg button.down.active { background: var(--warn); }
 .btn-sub { display: block; font-size: 13px; font-weight: 500; color: var(--text-dim); margin-top: 2px; }
 
+/* Conseils « Bien faire » */
+.picto-btn { position: relative; padding: 0; border-radius: 17px; }
+.picto-help { position: absolute; right: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 13px; display: grid; place-items: center; border: 3px solid var(--surface); }
+.now-links .tips-link { color: var(--accent); }
+.tips-head { align-items: center; }
+.tips-title { flex: 1; min-width: 0; }
+.tips-title h3 { font-size: 26px; }
+.tips-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 14px 0 8px; }
+.tips-label.ok { color: var(--accent); }
+.tips-label.no { color: var(--danger); }
+.tips-label.warn { color: var(--warn); margin: 0 0 4px; }
+.tip { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.38; margin-bottom: 9px; }
+.tip-mark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; margin-top: 1px; }
+.tip-mark svg { width: 12px; height: 12px; }
+.tip-mark.ok { background: var(--accent-soft); color: var(--accent); }
+.tip-mark.no { background: rgba(255, 138, 122, 0.14); color: var(--danger); }
+.tips-goal { margin-top: 14px; border: 1px solid rgba(240, 180, 74, 0.45); background: rgba(240, 180, 74, 0.08); border-radius: 16px; padding: 12px 14px; font-size: 15px; line-height: 1.4; }
+.tips-src { font-size: 12px; color: var(--text-faint); margin: 12px 0 0; }
+.tips-src a { color: var(--text-dim); }
+.tips-notes { margin-top: 18px; }
+.btn-outline + .btn-outline { margin-top: 10px; }
+
 /* ===== Suivi ===== */
 .card { background: var(--surface); border-radius: 22px; padding: 18px; margin-bottom: 14px; }
 .card-title { font-size: 24px; margin-bottom: 10px; }

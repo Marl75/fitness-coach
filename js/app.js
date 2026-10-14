@@ -169,7 +169,7 @@ function currentCard(e) {
     ${stackHtml(windowAround(w), w, `pinCurrent.bind(null,'${id}')`, 'compact')}
     <div class="now-main">
       <div class="eyebrow">${t('setOf', { i: i + 1, n: e.sets.length })}</div>
-      <div class="now-title">${pictoTile(exOfEntry(e), 'big')}<div><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}</div></div>
+      <div class="now-title"><button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">?</span></button><div><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}</div></div>
       ${setupSummary(e.setup) ? `<p class="now-setup">${esc(setupSummary(e.setup))}</p>` : ''}
       <button class="now-value" onclick="openSet('${id}',${i})" aria-label="${t('changeNumbers')}">
         <span class="serif">${set.reps || '–'}</span><span class="now-unit">× ${w ? fmtNum(w) + ' kg' : t('noWeight')}</span>
@@ -179,6 +179,7 @@ function currentCard(e) {
         <button onclick="addPlannedSet('${id}')">${t('addSetShort')}</button>
         <button onclick="finishAll('${id}')">${t('validateAll')}</button>
         <button onclick="stopEntry('${id}')">${t('stopHere')}</button>
+        <button class="tips-link" onclick="openTips('${esc(e.exId)}')">${t('tipsLink')}</button>
         <button onclick="openEntry('${id}')">${t('setup')} · ${t('comment').toLowerCase()}</button>
       </div>
     </div>
@@ -806,6 +807,7 @@ function openEntry(entryId) {
     <label class="field" style="margin-top:16px"><span>${t('note')}</span>
       <textarea class="input" id="entry-note" rows="2" maxlength="300" placeholder="${t('notePh')}">${esc(e.note || '')}</textarea></label>
     <button class="btn-accent big" onclick="saveEntryDetails('${id}')">${t('save')}</button>
+    <button class="link center-link" onclick="tipsFromEntry('${id}')">${t('tipsLink')}</button>
     <button class="link center-link" onclick="openVariant('${esc(e.exId)}')">${t('variant')}</button>
     <button class="link-danger" onclick="deleteEntry('${id}')">${t('deleteExercise')}</button>`);
   renderSetup();
@@ -829,6 +831,65 @@ function deleteEntry(entryId) {
   toast(t('deleted'));
 }
 
+// ===== CONSEILS « BIEN FAIRE » =====
+// Fiche ouverte depuis l'exercice en cours, le suivi ou le détail d'un exercice.
+// back : rouvre le panneau d'où l'on vient (sans perdre ce qui était en cours de saisie).
+const exNote = exId => (prefs().exNotes || {})[exId] || '';
+function saveExNote(exId, v) {
+  const notes = { ...(prefs().exNotes || {}) };
+  const text = v.trim();
+  if (text === exNote(exId)) return;
+  if (text) notes[exId] = text; else delete notes[exId];
+  savePrefs({ exNotes: notes });
+}
+function openTips(exId, back) {
+  UI.tipsBack = back || null;
+  const ex = findExercise(exId) || { id: exId, kind: 'sets', name: '' };
+  const tip = TIPS[exId];
+  const tx = tip && (tip[currentLang] || tip.fr);
+  const musc = musclesLine(ex);
+  const note = goalNote(ex);
+  const spare = tip && tip.spare ? Object.entries(tip.spare).filter(([m]) => muscleGoal(m) === 'down').map(([, s]) => s) : [];
+  const srcs = [tip && tip.src, ...spare.map(s => s.src)].filter(Boolean);
+  const list = (items, cls, ic) => items.map(x => `<p class="tip"><span class="tip-mark ${cls}">${icon(ic)}</span><span>${esc(x)}</span></p>`).join('');
+  openSheet(`
+    <div class="sheet-head tips-head">
+      ${pictoTile(ex, 'big')}
+      <div class="tips-title"><div class="eyebrow">${t('tipsEyebrow')}</div><h3>${esc(exLabel(ex))}</h3>${enLine(exEn(ex))}
+        ${musc ? `<p class="pick-musc">${esc(musc)}</p>` : ''}</div>
+      <button class="icon-btn" onclick="closeTips()" aria-label="${UI.tipsBack ? t('back') : t('close')}">${icon(UI.tipsBack ? 'prev' : 'close')}</button>
+    </div>
+    ${tx && tx.do.length ? `<p class="tips-label ok">${t('tipsDo')}</p>${list(tx.do, 'ok', 'check')}` : ''}
+    ${tx && tx.dont.length ? `<p class="tips-label no">${t('tipsDont')}</p>${list(tx.dont, 'no', 'close')}` : ''}
+    ${!tx ? `<p class="muted small">${t('tipsNone')}</p>` : ''}
+    ${note ? `<div class="tips-goal"><p class="tips-label warn">${t('tipsGoal')}</p>
+      <p>${esc(spare.length ? spare.map(s => s[currentLang] || s.fr).join(' ') : note)}</p></div>` : ''}
+    ${srcs.length ? `<p class="tips-src">${t(srcs.length > 1 ? 'sources' : 'source')} : ${srcs.map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join(', ')}</p>` : ''}
+    <label class="field tips-notes"><span>${t('exNotes')}</span>
+      <textarea class="input" id="ex-notes" rows="2" maxlength="500" placeholder="${t('exNotesPh')}" onchange="saveExNote('${esc(exId)}', this.value)">${esc(exNote(exId))}</textarea></label>
+    <p class="muted small hint">${t('exNotesHint')}</p>`);
+}
+function closeTips() {
+  const n = $('#ex-notes');
+  if (n && n.onchange) n.onchange();
+  const back = UI.tipsBack;
+  UI.tipsBack = null;
+  if (back) back(); else closeSheet();
+}
+// Depuis l'éditeur cardio : on garde le brouillon et on y revient
+function tipsFromEditor() {
+  draft.note = $('#draft-note').value;
+  if (document.activeElement && document.activeElement.onchange) document.activeElement.onchange();
+  const d = draft, last = UI.editorLast;
+  openTips(d.exId, () => { draft = d; openTimeEditor(last); });
+}
+// Depuis le détail muscu : on garde les réglages et le commentaire non enregistrés
+function tipsFromEntry(entryId) {
+  const note = $('#entry-note').value;
+  const pending = setupDraft;
+  openTips(pending.exId, () => { openEntry(entryId); setupDraft = pending; $('#entry-note').value = note; renderSetup(); });
+}
+
 // ===== CARDIO & COURS : LES CHAMPS DE L'EXERCICE =====
 const stepper = (value, onStep, onSet, placeholder, label) => `
   <div class="stepper">
@@ -839,6 +900,7 @@ const stepper = (value, onStep, onSet, placeholder, label) => `
 
 function openTimeEditor(last) {
   const isNew = !draft.entryId;
+  UI.editorLast = last;
   UI.addInfo = false;
   UI.newTrack = false;
   openSheet(`
@@ -851,6 +913,7 @@ function openTimeEditor(last) {
     <label class="field"><span>${t('comment')}</span>
       <textarea class="input" id="draft-note" rows="2" maxlength="300" placeholder="${t('notePh')}">${esc(draft.note || '')}</textarea></label>
     <button class="btn-accent big" onclick="saveDraft()">${isNew ? t('done') : t('save')}</button>
+    <button class="link center-link" onclick="tipsFromEditor()">${t('tipsLink')}</button>
     <button class="link center-link" onclick="openVariant('${esc(draft.exId)}')">${t('variant')}</button>
     ${isNew ? '' : `<button class="link-danger" onclick="deleteEntry('${esc(draft.entryId)}')">${t('deleteExercise')}</button>`}`);
   renderEditorBody();
@@ -1110,6 +1173,7 @@ function openExercise(exId) {
       <li><span class="h-date">${esc(cap(fmtDay(h.date)))}</span><span>${esc(entrySummary(h.entry))}</span>
       ${setupSummary(h.entry.setup) ? `<span class="h-setup">${esc(setupSummary(h.entry.setup))}</span>` : ''}
       ${h.entry.note ? `<span class="h-note">${esc(h.entry.note)}</span>` : ''}</li>`).join('')}</ul>
+    <button class="btn-outline" onclick="openTips('${esc(exId)}')">${t('tipsLink')}</button>
     ${findExercise(exId) ? `<button class="btn-outline" onclick="openVariant('${esc(exId)}')">${icon('plus')}${t('variant')}</button>` : ''}`);
   if (pts.length >= 2) lineChart($('#ex-chart'), pts);
 }
