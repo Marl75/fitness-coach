@@ -81,13 +81,22 @@ const tracks = () => prefs().tracks || [];
 const trackById = id => tracks().find(x => x.id === id);
 
 let toastTimer;
-function toast(msg) {
+// action (facultatif) : { label, fn } affiche un bouton dans le message, ex. « Annuler »
+function toast(msg, action) {
   document.querySelectorAll('.toast').forEach(t => t.remove());
   const el = document.createElement('div');
-  el.className = 'toast';
+  el.className = 'toast' + (action ? ' with-action' : '');
   el.setAttribute('role', 'status');
-  el.textContent = msg;
+  const text = document.createElement('span');
+  text.textContent = msg;
+  el.appendChild(text);
+  if (action) {
+    const btn = document.createElement('button');
+    btn.textContent = action.label;
+    btn.onclick = () => { el.remove(); action.fn(); };
+    el.appendChild(btn);
+  }
   document.body.appendChild(el);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.remove(), 2400);
+  toastTimer = setTimeout(() => el.remove(), action ? 5000 : 2400);
 }

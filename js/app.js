@@ -176,7 +176,8 @@ function currentCard(e) {
   }).join('');
   return `<section class="now sets" aria-label="${t('currentAria')}">
     <div class="now-head">
-      <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">?</span></button>
+      <button class="icon-btn now-close" onclick="removeCurrent('${id}')" aria-label="${t('removeEx')}">${icon('close')}</button>
+      <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">${icon('info')}</span></button>
       <div class="now-head-text"><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
         ${last ? `<p class="now-last">${esc(t('lastShort', { what: entrySummary(last.entry) }))}</p>` : ''}</div>
     </div>
@@ -198,6 +199,25 @@ function currentCard(e) {
   </section>`;
 }
 
+// Retirer l'exercice en cours (confirmation si des séries sont déjà faites), avec « Annuler »
+function removeEntry(entryId) {
+  const s = cloneSession(UI.date);
+  s.entries = s.entries.filter(x => x.id !== entryId);
+  saveSession(s);
+}
+function removeCurrent(entryId) {
+  const s = cloneSession(UI.date);
+  const k = s.entries.findIndex(x => x.id === entryId);
+  if (k < 0) return;
+  const e = s.entries[k];
+  if (doneSets(e).length && !confirm(t('confirmDelete', { name: entryName(e) }))) return;
+  removeEntry(entryId);
+  toast(t('removedEx'), { label: t('undo'), fn: () => {
+    const back = cloneSession(UI.date);
+    back.entries.splice(Math.min(k, back.entries.length), 0, e);
+    saveSession(back);
+  } });
+}
 function finishSetAt(entryId, k) {
   const e = updateEntry(UI.date, entryId, e => { e.sets[k].done = true; });
   if (e) toast(pendingIndex(e) < 0 ? t('exerciseDone') : t('setNDone', { n: k + 1 }));
@@ -608,6 +628,8 @@ function pickExercise(id, exObj) {
     saveSession(s);
     closeSheet();
     setTimeout(() => $('.now') && $('.now').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    // Touché par erreur : « Annuler » le retire et rouvre la liste
+    toast(t('addedEx', { name: exLabel(ex) }), { label: t('undo'), fn: () => { removeEntry(entry.id); openPicker(); } });
     return;
   }
   // Cardio, cours : toutes les valeurs de la dernière fois (vitesse, inclinaison, poids porté, piste…)
@@ -872,7 +894,7 @@ function openTips(exId, back) {
   const note = goalNote(ex);
   const spare = tip && tip.spare ? Object.entries(tip.spare).filter(([m]) => muscleGoal(m) === 'down').map(([, s]) => s) : [];
   const srcs = [tip && tip.src, ...spare.map(s => s.src)].filter(Boolean);
-  const list = (items, cls, ic) => items.map(x => `<p class="tip"><span class="tip-mark ${cls}">${icon(ic)}</span><span>${esc(x)}</span></p>`).join('');
+  const list = (items, cls, ic) => items.map(x => `<p class="tip-line"><span class="tip-mark ${cls}">${icon(ic)}</span><span>${esc(x)}</span></p>`).join('');
   openSheet(`
     <div class="sheet-head tips-head">
       ${pictoTile(ex, 'big')}
