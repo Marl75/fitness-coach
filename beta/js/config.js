@@ -1,0 +1,15 @@
+// Configuration du projet Firebase de Routine (projet « fitcoach-71392 », ancien nom de l'appli).
+// Colle ici le bloc « firebaseConfig » donné par la console Firebase
+// (Paramètres du projet > Vos applications > Appli Web).
+// Ce bloc n'est pas secret : ce sont les règles Firestore qui protègent les données.
+//
+// Tant qu'il vaut null, l'appli tourne en mode démo : données factices, gardées sur cet appareil.
+// On peut aussi forcer le mode démo en ajoutant ?demo à l'adresse.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAvxvKu02zr-8MCS21_gvDYuF_LqNnzjTM",
+  authDomain: "fitcoach-71392.firebaseapp.com",
+  projectId: "fitcoach-71392",
+  storageBucket: "fitcoach-71392.firebasestorage.app",
+  messagingSenderId: "756601608124",
+  appId: "1:756601608124:web:923dd8a7370a12d2203db9",
+};
