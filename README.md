@@ -13,7 +13,7 @@ A small progressive web app to log workouts and keep track of your consistency.
 ## Features
 
 - **Workout**: add exercises as you go; the app suggests what you did last time
-- **One set at a time**, with a visual weight stack to pick the load, an exact weight field (steps of 0.25 to 2.5 kg) and quick buttons for reps
+- **Sets table**: one row per set (weight, reps, check); the current set has its own − / + for reps, so a shorter last set takes two taps; tapping a number opens the weight stack and exact weight field (steps of 0.25 to 2.5 kg)
 - **Details per exercise**: speed and incline for incline walking, resistance and intensity for the bike, laps on a saved track with the weight carried in each hand… plus a comment; any extra detail can be added and is remembered
 - **Strength setup**: machine or not, dumbbells, position, bench (flat, incline, decline and angle), movement (your own options are remembered) and the muscle you want to work, next to the muscles the exercise really works
 - **Everything from last time is pre-filled**: weights, reps, setup, speed, incline, track…

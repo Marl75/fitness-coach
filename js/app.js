@@ -63,10 +63,6 @@ function stackHtml(values, pin, action, cls = '') {
     return `<button type="button" class="plate ${state}" data-v="${v}" onclick="${action}(${v})" aria-pressed="${v === at}" aria-label="${v ? t('kilos', { w: fmtNum(v) }) : t('plateNoneAria')}">${plateLabel(v)}</button>`;
   }).join('')}</div>`;
 }
-function windowAround(w, n = 5) {
-  const start = Math.max(0, Math.floor(w / STEP) * STEP - STEP * Math.floor(n / 2));
-  return Array.from({ length: n }, (_, i) => start + i * STEP);
-}
 // ===== NAVIGATION =====
 function setTab(tab) {
   UI.tab = tab;
@@ -159,43 +155,58 @@ function entryRow(e) {
     ${e.note ? `<span class="row-note">${esc(e.note)}</span>` : ''}</span>${mark}</button>`;
 }
 
-// L'exercice en cours : une grande carte avec la pile et « Série faite »
+// L'exercice en cours : un tableau des séries (poids, répétitions, coche).
+// La ligne en cours a ses boutons − / + ; toucher un poids ou un nombre ouvre le réglage précis.
 function currentCard(e) {
   const i = pendingIndex(e);
-  const set = e.sets[i];
-  const w = set.weight || 0;
   const id = esc(e.id);
-  return `<section class="now" aria-label="${t('currentAria')}">
-    ${stackHtml(windowAround(w), w, `pinCurrent.bind(null,'${id}')`, 'compact')}
-    <div class="now-main">
-      <div class="eyebrow">${t('setOf', { i: i + 1, n: e.sets.length })}</div>
-      <div class="now-title"><button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">?</span></button><div><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}</div></div>
-      ${setupSummary(e.setup) ? `<p class="now-setup">${esc(setupSummary(e.setup))}</p>` : ''}
-      <button class="now-value" onclick="openSet('${id}',${i})" aria-label="${t('changeNumbers')}">
-        <span class="serif">${set.reps || '–'}</span><span class="now-unit">× ${w ? fmtNum(w) + ' kg' : t('noWeight')}</span>
-      </button>
-      <button class="btn-accent" onclick="finishSet('${id}')">${icon('check')}${t('setDone')}</button>
-      <div class="now-links">
-        <button onclick="addPlannedSet('${id}')">${t('addSetShort')}</button>
-        <button onclick="finishAll('${id}')">${t('validateAll')}</button>
-        <button onclick="stopEntry('${id}')">${t('stopHere')}</button>
-        <button class="tips-link" onclick="openTips('${esc(e.exId)}')">${t('tipsLink')}</button>
-        <button onclick="openEntry('${id}')">${t('setup')} · ${t('comment').toLowerCase()}</button>
-      </div>
+  const last = historyOf(e.exId).find(h => h.date < UI.date);
+  const setup = setupSummary(e.setup);
+  const rows = e.sets.map((s, k) => {
+    const done = s.done !== false, cur = k === i;
+    const n = k + 1;
+    const reps = cur
+      ? `<div class="mini-step"><button onclick="stepSetReps('${id}',${k},-1)" aria-label="${t('repMinus')}">${icon('minus')}</button><span class="serif">${s.reps ?? '–'}</span><button onclick="stepSetReps('${id}',${k},1)" aria-label="${t('repPlus')}">${icon('plus')}</button></div>`
+      : `<button class="cell serif" onclick="openSet('${id}',${k})" aria-label="${t('changeNumbers')}">${s.reps ?? '–'}</button>`;
+    const check = done
+      ? `<button class="chk on" onclick="undoSet('${id}',${k})" aria-label="${t('setUndoAria', { n })}">${icon('check')}</button>`
+      : `<button class="chk${cur ? ' cur' : ''}" onclick="finishSetAt('${id}',${k})" aria-label="${t('setCheckAria', { n })}">${icon('check')}</button>`;
+    return `<div class="srow${cur ? ' cur' : ''}${!done && !cur ? ' later' : ''}"><span class="sn">${n}</span>
+      <button class="cell serif" onclick="openSet('${id}',${k})" aria-label="${t('changeNumbers')}">${s.weight ? fmtNum(s.weight) : '–'}</button>${reps}${check}</div>`;
+  }).join('');
+  return `<section class="now sets" aria-label="${t('currentAria')}">
+    <div class="now-head">
+      <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">?</span></button>
+      <div class="now-head-text"><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
+        ${last ? `<p class="now-last">${esc(t('lastShort', { what: entrySummary(last.entry) }))}</p>` : ''}</div>
+    </div>
+    ${setup ? `<p class="now-setup">${esc(setup)}</p>` : ''}
+    <div class="sets-grid">
+      <div class="srow hd"><span class="sn">#</span><span>${t('colWeight')}</span><span>${t('colReps')}</span><span></span></div>
+      ${rows}
+    </div>
+    <div class="sets-actions">
+      <button class="add" onclick="addPlannedSet('${id}')">${icon('plus')}${t('addSetBtn')}</button>
+      <button onclick="stopEntry('${id}')">${t('finishEx')}</button>
+    </div>
+    <div class="now-links">
+      <button onclick="finishAll('${id}')">${t('validateAll')}</button>
+      <button class="tips-link" onclick="openTips('${esc(e.exId)}')">${t('tipsLink')}</button>
+      <button onclick="openEntry('${id}')">${t('setup')} · ${t('comment').toLowerCase()}</button>
     </div>
   </section>`;
 }
 
-function pinCurrent(entryId, v) {
-  updateEntry(UI.date, entryId, e => {
-    const i = pendingIndex(e);
-    // Le nouveau poids vaut pour cette série et les suivantes
-    for (let k = i; k < e.sets.length; k++) if (e.sets[k].done === false) e.sets[k].weight = v || null;
-  });
+function finishSetAt(entryId, k) {
+  const e = updateEntry(UI.date, entryId, e => { e.sets[k].done = true; });
+  if (e) toast(pendingIndex(e) < 0 ? t('exerciseDone') : t('setNDone', { n: k + 1 }));
 }
-function finishSet(entryId) {
-  const e = updateEntry(UI.date, entryId, e => { e.sets[pendingIndex(e)].done = true; });
-  if (e) toast(pendingIndex(e) < 0 ? t('exerciseDone') : t('setNDone', { n: doneSets(e).length }));
+function undoSet(entryId, k) {
+  updateEntry(UI.date, entryId, e => { e.sets[k].done = false; });
+}
+// Répétitions de la série en cours, sans ouvrir de panneau (ex. 8 au lieu de 10 à la dernière série)
+function stepSetReps(entryId, k, d) {
+  updateEntry(UI.date, entryId, e => { e.sets[k].reps = Math.max(0, (e.sets[k].reps || 0) + d) || null; });
 }
 function finishAll(entryId) {
   updateEntry(UI.date, entryId, e => e.sets.forEach(s => { s.done = true; }));
@@ -204,6 +215,7 @@ function finishAll(entryId) {
 function addPlannedSet(entryId) {
   updateEntry(UI.date, entryId, e => { e.sets.push({ ...e.sets[e.sets.length - 1], done: false }); });
 }
+// Terminer : les séries prévues non faites sont retirées
 function stopEntry(entryId) {
   updateEntry(UI.date, entryId, e => { e.sets = e.sets.filter(s => s.done !== false); });
 }
@@ -610,7 +622,9 @@ function openSet(entryId, idx) {
   const e = (sessionOf(UI.date).entries || []).find(x => x.id === entryId);
   if (!e) return;
   const set = e.sets[idx];
-  setDraft = { entryId, idx, reps: set.reps, weight: set.weight || 0, wasDone: set.done !== false };
+  // Une série prévue reste prévue : on ne fait que changer ses chiffres (la coche du tableau la valide)
+  const keep = set.done === false;
+  setDraft = { entryId, idx, reps: set.reps, weight: set.weight || 0, wasDone: set.done !== false, keep };
   const last = historyOf(e.exId).find(h => h.date < UI.date);
   const values = Array.from({ length: 81 }, (_, i) => i * STEP); // 0 à 200 kg
   openSheet(`
@@ -642,7 +656,7 @@ function openSet(entryId, idx) {
       </div>
     </div>
     <p class="muted small">${last ? t('lastTime', { when: relDay(last.date), what: esc(entrySummary(last.entry)) }) : t('firstTimeEx')}</p>
-    <button class="btn-accent big" onclick="saveSet()">${setDraft.wasDone ? t('save') : t('validateSet')}</button>
+    <button class="btn-accent big" onclick="saveSet()">${setDraft.wasDone || keep ? t('save') : t('validateSet')}</button>
     ${setDraft.wasDone ? `<button class="link-danger" onclick="deleteSet()">${t('deleteSet')}</button>` : ''}`);
   const pin = $('#set-stack .plate.pin');
   if (pin) pin.scrollIntoView({ block: 'center' });
@@ -682,7 +696,7 @@ function stepReps(d) {
 function saveSet() {
   setDraft.reps = numOrNull($('#reps').value);
   setDraft.weight = Math.max(0, numOrNull($('#weight-input').value) || 0);
-  const { entryId, idx, reps, weight, wasDone } = setDraft;
+  const { entryId, idx, reps, weight, wasDone, keep } = setDraft;
   updateEntry(UI.date, entryId, e => {
     const old = e.sets[idx];
     // Les séries prévues ensuite suivent le nouveau poids (et les répétitions si elles étaient identiques)
@@ -692,10 +706,10 @@ function saveSet() {
       if (s.weight === old.weight) s.weight = weight || null;
       if (s.reps === old.reps) s.reps = reps;
     }
-    e.sets[idx] = { reps, weight: weight || null, done: true };
+    e.sets[idx] = { reps, weight: weight || null, done: wasDone || !keep };
   });
   closeSheet();
-  toast(wasDone ? t('modified') : t('setDone'));
+  toast(wasDone || keep ? t('modified') : t('setDone'));
 }
 function deleteSet() {
   updateEntry(UI.date, setDraft.entryId, e => { e.sets.splice(setDraft.idx, 1); });
