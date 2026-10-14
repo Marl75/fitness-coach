@@ -435,6 +435,8 @@ function pickItem(ex) {
   </div>`;
 }
 const byName = (a, b) => exLabel(a).localeCompare(exLabel(b), currentLang);
+// Dans une catégorie : favoris d'abord, puis ordre alphabétique
+const byFavThenName = (a, b) => (isFav(b.id) - isFav(a.id)) || byName(a, b);
 
 function renderPickerList() {
   const box = $('#picker-list');
@@ -472,15 +474,15 @@ function renderPickerList() {
       hiddenPool = recent.filter(e => isHidden(e.id));
     } else if (f === 'all') {
       for (const g of GROUPS) {
-        const list = all.filter(e => e.group === g.id).sort(byName);
+        const list = all.filter(e => e.group === g.id).sort(byFavThenName);
         if (list.length) html += `<p class="pick-group">${g.label}</p>` + list.map(pickItem).join('');
       }
       hiddenPool = every.filter(e => isHidden(e.id));
     } else if (f === 'custom') {
-      html += all.filter(e => e.custom).sort(byName).map(pickItem).join('');
+      html += all.filter(e => e.custom).sort(byFavThenName).map(pickItem).join('');
       hiddenPool = every.filter(e => e.custom && isHidden(e.id));
     } else {
-      html += all.filter(e => e.group === f).sort(byName).map(pickItem).join('');
+      html += all.filter(e => e.group === f).sort(byFavThenName).map(pickItem).join('');
       hiddenPool = every.filter(e => e.group === f && isHidden(e.id));
     }
     html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}${t('createExercise')}</button>`;
