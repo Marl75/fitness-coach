@@ -145,14 +145,6 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .row-val { font-weight: 700; white-space: nowrap; }
 .foot { margin-top: 14px; }
 
-/* Mini-pile à côté de chaque exercice */
-.mini { width: 26px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
-.mini span { height: 4px; border-radius: 2px; background: var(--surface-2); }
-.mini span.on { background: var(--steel-2); }
-.mini span.pin { background: var(--accent); }
-.mini-icon { color: var(--text-faint); align-items: center; }
-.mini-icon svg { width: 22px; height: 22px; }
-
 /* Carte de l'exercice en cours */
 .now {
   margin: 14px 0 4px; background: var(--surface); border-radius: 22px; padding: 18px;
@@ -243,6 +235,24 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .seg.small button { min-width: 40px; height: 32px; padding: 0 8px; font-size: 13px; }
 .center-link { display: block; margin: 6px auto 0; }
 .history + .btn-outline { margin-top: 12px; }
+
+/* Pictos : silhouette grise, muscle travaillé en vert */
+.picto { width: 48px; height: 48px; border-radius: 14px; background: var(--surface); border: 1px solid var(--surface-2); color: var(--text-dim); display: grid; place-items: center; flex-shrink: 0; }
+.sheet .picto { background: var(--bg); }
+.picto.big { width: 64px; height: 64px; border-radius: 17px; }
+.picto .picto-svg { width: 42px; height: 42px; }
+.picto.big .picto-svg { width: 56px; height: 56px; }
+.picto-svg .pf { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.picto-svg .pm { stroke: var(--accent); fill: var(--accent); stroke-width: 4.2; stroke-linecap: round; }
+.picto-svg .pm-sec { opacity: 0.4; }
+.pick-main { flex-direction: row !important; align-items: center; gap: 12px; }
+.pick-text { display: flex; flex-direction: column; min-width: 0; }
+.pick-musc { font-size: 13px; color: var(--accent); font-weight: 600; }
+.now-title { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 6px; min-width: 0; }
+.now-name { overflow-wrap: anywhere; }
+.now { background: var(--surface); }
+.now .picto { background: var(--bg); }
+.works { display: flex; gap: 12px; align-items: center; }
 
 /* ===== Suivi ===== */
 .card { background: var(--surface); border-radius: 22px; padding: 18px; margin-bottom: 14px; }

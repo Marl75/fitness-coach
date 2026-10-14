@@ -199,6 +199,13 @@ const EX_MUSCLES = {
   'planche-lat': [['obliques'], ['abs']],
   'mountain': [['abs'], ['shoulders']],
   'stairmaster': [['glutes', 'quads'], ['calves']],
+  'tapis': [['quads', 'glutes'], ['calves']],
+  'course': [['quads', 'glutes'], ['calves']],
+  'velo': [['quads'], ['glutes', 'calves']],
+  'elliptique': [['quads', 'glutes'], []],
+  'rameur': [['lats', 'upperback'], ['quads', 'biceps']],
+  'corde': [['calves'], ['shoulders']],
+  'natation': [['lats', 'shoulders'], []],
   'marche-inclinee': [['glutes', 'calves'], ['hams']],
   'allers-retours': [['upperback'], ['glutes', 'abs']],
 };

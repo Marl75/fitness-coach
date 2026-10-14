@@ -179,7 +179,7 @@ Object.assign(I18N.fr, {
   mv_overhead: 'Bras à la verticale, redescendus derrière la tête',
   target: 'Muscle que je veux travailler', targetSum: 'cible : {m}',
   worksMost: 'Cet exercice travaille surtout : {p}.', worksAlso: 'Un peu aussi : {s}.', worksUnknown: 'Choisis les muscles travaillés en créant l’exercice pour les voir ici.',
-  lastShort: 'Dernière fois : {what}', comment: 'Commentaire',
+  lastShort: 'Dernière fois : {what}', comment: 'Commentaire', alsoLittle: 'un peu',
   // Créer
   fieldsToLog: 'Infos à noter', musclesWorked: 'Muscles travaillés (facultatif)',
   variant: 'Créer une variante', variantName: '{name} (variante)', variantOf: 'Variante de « {name} » : même type et mêmes infos à noter, historique à part.',
@@ -215,7 +215,7 @@ Object.assign(I18N.en, {
   mv_overhead: 'Arms vertical, lowered behind the head',
   target: 'Muscle I want to work', targetSum: 'target: {m}',
   worksMost: 'This exercise mainly works: {p}.', worksAlso: 'Also a little: {s}.', worksUnknown: 'Pick the muscles worked when creating the exercise to see them here.',
-  lastShort: 'Last time: {what}', comment: 'Comment',
+  lastShort: 'Last time: {what}', comment: 'Comment', alsoLittle: 'a little',
   fieldsToLog: 'Details to log', musclesWorked: 'Muscles worked (optional)',
   variant: 'Create a variant', variantName: '{name} (variant)', variantOf: 'Variant of “{name}”: same type and details, separate history.',
   m_pecs: 'Chest', m_lats: 'Lats (back)', m_upperback: 'Upper back, traps', m_shoulders: 'Shoulders',

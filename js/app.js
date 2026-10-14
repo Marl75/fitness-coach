@@ -16,6 +16,7 @@ function allExercises() {
   return [...CATALOG, ...Data.exercises.map(e => ({ ...e, group: e.group || 'custom', custom: true }))];
 }
 const findExercise = id => allExercises().find(e => e.id === id);
+const exOfEntry = e => findExercise(e.exId) || { id: e.exId, kind: e.kind };
 const activeSessions = () => Data.sessions.filter(s => (s.entries || []).some(entryDone));
 const sessionOf = date => Data.sessions.find(s => s.id === date);
 function cloneSession(date) {
@@ -66,20 +67,6 @@ function windowAround(w, n = 5) {
   const start = Math.max(0, Math.floor(w / STEP) * STEP - STEP * Math.floor(n / 2));
   return Array.from({ length: n }, (_, i) => start + i * STEP);
 }
-// Petite pile décorative : plus il y a de plaques levées, plus c'est lourd par rapport à tes habitudes
-function miniStack(e) {
-  if (e.kind !== 'sets') return `<span class="mini mini-icon">${icon('timer')}</span>`;
-  const hist = historyOf(e.exId).map(h => maxWeight(h.entry)).filter(Boolean);
-  const w = maxWeight(e);
-  let lit = 0;
-  if (w) {
-    const lo = Math.min(...hist, w), hi = Math.max(...hist, w);
-    lit = hi === lo ? 3 : 1 + Math.round(4 * (w - lo) / (hi - lo));
-  }
-  return `<span class="mini" aria-hidden="true">${Array.from({ length: 6 }, (_, i) =>
-    `<span class="${i < lit - 1 ? 'on' : i === lit - 1 ? 'pin' : ''}"></span>`).join('')}</span>`;
-}
-
 // ===== NAVIGATION =====
 function setTab(tab) {
   UI.tab = tab;
@@ -166,7 +153,7 @@ function entryRow(e) {
   const sub = pi >= 0 && !doneSets(e).length ? tn('plannedSets', e.sets.length) : entrySummary(e);
   const mark = entryDone(e) && pi < 0 ? `<span class="row-mark">${icon('check')}</span>` : icon('chev');
   const setup = setupSummary(e.setup);
-  return `<button class="row" onclick="openEntry('${esc(e.id)}')">${miniStack(e)}
+  return `<button class="row" onclick="openEntry('${esc(e.id)}')">${pictoTile(exOfEntry(e))}
     <span class="row-main"><span class="row-name">${esc(entryName(e))}</span>${enLine(entryEn(e))}<span class="row-sub">${esc(sub)}</span>
     ${setup ? `<span class="row-setup">${esc(setup)}</span>` : ''}
     ${e.note ? `<span class="row-note">${esc(e.note)}</span>` : ''}</span>${mark}</button>`;
@@ -182,7 +169,7 @@ function currentCard(e) {
     ${stackHtml(windowAround(w), w, `pinCurrent.bind(null,'${id}')`, 'compact')}
     <div class="now-main">
       <div class="eyebrow">${t('setOf', { i: i + 1, n: e.sets.length })}</div>
-      <h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
+      <div class="now-title">${pictoTile(exOfEntry(e), 'big')}<div><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}</div></div>
       ${setupSummary(e.setup) ? `<p class="now-setup">${esc(setupSummary(e.setup))}</p>` : ''}
       <button class="now-value" onclick="openSet('${id}',${i})" aria-label="${t('changeNumbers')}">
         <span class="serif">${set.reps || '–'}</span><span class="now-unit">× ${w ? fmtNum(w) + ' kg' : t('noWeight')}</span>
@@ -348,8 +335,10 @@ function pickItem(ex) {
   const last = historyOf(ex.id)[0];
   const sub = last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : KINDS[ex.kind].label;
   const fav = isFav(ex.id);
+  const musc = musclesLine(ex);
   return `<div class="pick">
-    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}<span class="pick-sub">${esc(sub)}</span></button>
+    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')">${pictoTile(ex)}<span class="pick-text"><span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}
+      ${musc ? `<span class="pick-musc">${esc(musc)}</span>` : ''}<span class="pick-sub">${esc(sub)}</span></span></button>
     <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? t('favOn') : t('favOff')} : ${esc(exLabel(ex))}">${icon('star')}</button>
     <button class="hide-btn" onclick="toggleHidden('${esc(ex.id)}')" aria-label="${t('hide')} : ${esc(exLabel(ex))}">${icon('eyeoff')}</button>
   </div>`;
@@ -701,7 +690,7 @@ function renderSetup() {
       <button class="btn-accent" onclick="addMove()">${t('moveAdd')}</button></div><p class="muted small hint">${t('moveAddHint')}</p>` : ''}
     <p class="sub-label">${t('target')}</p>
     <div class="chips wrap">${MUSCLES.map(m => chip((st.target || []).includes(m), `toggleTarget('${m}')`, t('m_' + m))).join('')}</div>
-    <p class="works">${p.length ? t('worksMost', { p: `<b>${p.map(m => t('m_' + m)).join(', ')}</b>` }) + (sec.length ? ' ' + t('worksAlso', { s: sec.map(m => t('m_' + m)).join(', ') }) : '') : t('worksUnknown')}</p>`;
+    <p class="works">${pictoTile(ex, 'big')}<span>${p.length ? t('worksMost', { p: `<b>${p.map(m => t('m_' + m)).join(', ')}</b>` }) + (sec.length ? ' ' + t('worksAlso', { s: sec.map(m => t('m_' + m)).join(', ') }) : '') : t('worksUnknown')}</span></p>`;
   setupDraft.moves = moves;
 }
 function toggleSetup(k) { setupDraft.setup[k] = !setupDraft.setup[k]; renderSetup(); }
@@ -1029,7 +1018,7 @@ function exerciseListHtml() {
   return `<div class="ex-list">${[...byEx.values()].map(x => {
     const metric = metricFor(x.kind, historyOf(x.id));
     const v = metric.get(x.entry);
-    return `<button class="row flat" onclick="openExercise('${esc(x.id)}')">${miniStack(x.entry)}
+    return `<button class="row flat" onclick="openExercise('${esc(x.id)}')">${pictoTile(exOfEntry(x.entry))}
       <span class="row-main"><span class="row-name">${esc(entryName(x.entry))}</span>${enLine(entryEn(x.entry))}
       <span class="row-sub">${tn('times', x.count, { when: relDay(x.last) })}</span></span>
       <span class="row-val">${v ? metric.fmt(v) : ''}</span>${icon('chev')}

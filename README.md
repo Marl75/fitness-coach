@@ -17,6 +17,7 @@ A small progressive web app to log workouts and keep track of your consistency.
 - **Details per exercise**: speed and incline for incline walking, resistance and intensity for the bike, laps on a saved track with the weight carried in each hand… plus a comment; any extra detail can be added and is remembered
 - **Strength setup**: machine or not, dumbbells, position, bench (flat, incline, decline and angle), movement (your own options are remembered) and the muscle you want to work, next to the muscles the exercise really works
 - **Everything from last time is pre-filled**: weights, reps, setup, speed, incline, track…
+- **A picture for every exercise**: a line figure doing the movement, with the muscles it works highlighted in green (custom exercises get a generic figure with the muscles you chose)
 - **Custom exercises and variants** with the details you choose; in French, catalogue exercises also show their English name
 - **Exercise picker** with categories, favourites and duplicate detection; unused exercises can be hidden
 - **Log another day** from a calendar showing the days you trained
