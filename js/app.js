@@ -251,6 +251,11 @@ function setGoal(m, g) {
   if (g) goals[m] = g; else delete goals[m];
   savePrefs({ goals });
 }
+// Étiquette verte : l'exercice travaille en principal un muscle « à développer »
+function goalBadge(ex) {
+  const up = musclesOf(ex)[0].filter(m => muscleGoal(m) === 'up');
+  return up.length ? `<span class="goal-badge">${icon('check')}${esc(t('goalBadge', { m: muscleNames(up) }))}</span>` : '';
+}
 // « Sollicite surtout : trapèzes (à ménager) »
 function goalNote(ex) {
   const [main, sec] = musclesOf(ex);
@@ -403,7 +408,7 @@ function pickItem(ex) {
   const fav = isFav(ex.id);
   const musc = musclesLine(ex);
   return `<div class="pick">
-    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')">${pictoTile(ex)}<span class="pick-text"><span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}
+    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')">${pictoTile(ex)}<span class="pick-text">${goalBadge(ex)}<span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}
       ${musc ? `<span class="pick-musc">${esc(musc)}</span>` : ''}${goalNote(ex) ? `<span class="pick-warn">${esc(goalNote(ex))}</span>` : ''}<span class="pick-sub">${esc(sub)}</span></span></button>
     <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? t('favOn') : t('favOff')} : ${esc(exLabel(ex))}">${icon('star')}</button>
     <button class="hide-btn" onclick="toggleHidden('${esc(ex.id)}')" aria-label="${t('hide')} : ${esc(exLabel(ex))}">${icon('eyeoff')}</button>

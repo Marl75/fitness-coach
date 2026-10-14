@@ -311,10 +311,18 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .sets-actions svg { width: 16px; height: 16px; }
 .now.sets .now-links { margin-top: 6px; }
 
+/* Étiquette « Objectif » dans la liste des exercices */
+.goal-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 3px; padding: 2px 8px 2px 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 800; letter-spacing: 0.02em; }
+.goal-badge svg { width: 11px; height: 11px; }
+
 /* Bilan par muscle */
+.add-btn { width: 44px; height: 44px; margin-right: 8px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex-shrink: 0; }
+.add-btn svg { width: 20px; height: 20px; }
+.fav-mark svg { width: 13px; height: 13px; color: var(--accent); fill: currentColor; vertical-align: -1px; }
 .malerts { list-style: none; margin: 10px 0 12px; padding: 10px 12px; border-radius: 14px; background: rgba(240, 180, 74, 0.08); border: 1px solid rgba(240, 180, 74, 0.35); }
 .malerts li { font-size: 14px; padding: 3px 0; }
-.mrow { padding: 8px 0; }
+.mrow { display: block; width: 100%; text-align: left; padding: 8px 0; border-radius: 10px; }
+.mrow:active { background: var(--surface-2); }
 .mrow-top { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin-bottom: 5px; }
 .mname { font-weight: 700; }
 .mgoal { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }

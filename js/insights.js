@@ -54,14 +54,14 @@ function musclesCardHtml() {
   const rows = list.map(m => {
     const n = main[m] || 0, s2 = sec[m] || 0, g = goals[m];
     const cls = g === 'down' ? 'warn' : g === 'up' ? 'up' : '';
-    return `<div class="mrow ${cls}">
+    return `<button class="mrow ${cls}" onclick="openMuscle('${m}')" aria-label="${esc(t('muscleOpenAria', { m: t('m_' + m) }))}">
       <div class="mrow-top"><span class="mname">${esc(t('m_' + m).replace(/\s*\(.*\)$/, ''))}${g === 'up' ? ` <span class="mgoal">${t('goalUp').toLowerCase()}</span>` : g === 'down' ? ` <span class="mgoal warn">${t('goalDown').toLowerCase()}</span>` : ''}</span>
         <span class="mval">${tn('setsShort', n)}${s2 ? ` <span class="muted">+ ${s2}</span>` : ''}</span></div>
       <div class="mbar" role="img" aria-label="${esc(t('m_' + m))} : ${tn('setsShort', n)}">
         <span class="main" style="width:${(100 * n / scale).toFixed(1)}%"></span><span class="sec" style="width:${(100 * s2 / scale).toFixed(1)}%"></span>
         ${g === 'up' ? `<span class="target" style="left:${(100 * SETS_TARGET / scale).toFixed(1)}%"></span>` : ''}
       </div>
-    </div>`;
+    </button>`;
   }).join('');
 
   return `<h2 class="card-title">${t('musclesWeek')}</h2>
@@ -70,6 +70,56 @@ function musclesCardHtml() {
     ${rows || `<p class="muted small">${t('musclesEmpty')}</p>`}
     ${!Object.keys(goals).length ? `<button class="link" onclick="openGoals()">${t('musclesSetGoals')}</button>` : ''}
     <p class="tips-src">${t('musclesSrc', { n: SETS_TARGET, d: DAYS_TARGET })} ${srcLink(ACSM_2026)}</p>`;
+}
+
+// ----- Exercices pour un muscle (depuis le bilan) -----
+// D'abord ceux qui le ciblent en principal, sans solliciter de muscle à ménager ; à égalité,
+// ceux que tu connais déjà et tes favoris. Puis ceux où il aide.
+function exercisesFor(m) {
+  const pool = allExercises().filter(e => !isHidden(e.id));
+  const rank = e => {
+    const [main, sec] = musclesOf(e);
+    // Muscle à ménager sollicité : en principal, tout en bas ; en soutien, après les autres
+    const spare = main.some(x => muscleGoal(x) === 'down') ? 2 : sec.some(x => muscleGoal(x) === 'down') ? 1 : 0;
+    return [spare, -(isFav(e.id) ? 1 : 0), -historyOf(e.id).length, main.length];
+  };
+  const cmp = (a, b) => { const ra = rank(a), rb = rank(b); for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return ra[i] - rb[i]; return byName(a, b); };
+  return {
+    main: pool.filter(e => musclesOf(e)[0].includes(m)).sort(cmp),
+    help: pool.filter(e => !musclesOf(e)[0].includes(m) && musclesOf(e)[1].includes(m)).sort(cmp),
+  };
+}
+function openMuscle(m) {
+  const { main } = muscleWeek(isoDate(mondayOf(new Date())), isoDate());
+  const n = main[m] || 0, g = muscleGoal(m);
+  const lists = exercisesFor(m);
+  const item = ex => {
+    const last = historyOf(ex.id)[0];
+    const note = goalNote(ex);
+    return `<div class="pick">
+      <div class="pick-main">${pictoTile(ex)}<span class="pick-text"><span class="pick-name">${esc(exLabel(ex))}${isFav(ex.id) ? ` <span class="fav-mark">${icon('star')}</span>` : ''}</span>${enLine(exEn(ex))}
+        <span class="pick-musc">${esc(musclesLine(ex))}</span>${note ? `<span class="pick-warn">${esc(note)}</span>` : ''}
+        <span class="pick-sub">${esc(last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : t('neverDone'))}</span></span></div>
+      <button class="add-btn" onclick="addFromMuscle('${esc(ex.id)}')" aria-label="${esc(t('addToSession'))} : ${esc(exLabel(ex))}">${icon('plus')}</button>
+    </div>`;
+  };
+  openSheet(`
+    <div class="sheet-head">
+      <div><div class="eyebrow">${g === 'up' ? t('goalUp') : g === 'down' ? t('goalDown') : t('musclesWeek')}</div><h3>${esc(t('m_' + m))}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
+    </div>
+    <p class="muted small">${g === 'up' ? t('muscleWeekUp', { n, target: SETS_TARGET }) : t('muscleWeekN', { n })}</p>
+    ${lists.main.length ? `<p class="pick-group">${t('muscleMain')}</p>${lists.main.map(item).join('')}` : ''}
+    ${lists.help.length ? `<p class="pick-group">${t('muscleHelp')}</p>${lists.help.slice(0, 6).map(item).join('')}` : ''}
+    ${!lists.main.length && !lists.help.length ? `<p class="muted small empty-list">${t('muscleNone')}</p>` : ''}`);
+}
+// Ajoute l'exercice à la séance du jour et y retourne
+function addFromMuscle(exId) {
+  UI.date = isoDate();
+  UI.tab = 'today';
+  try { localStorage.setItem('fitcoach-tab', 'today'); } catch (e) {}
+  render();
+  pickExercise(exId);
 }
 
 // ----- Progression -----
