@@ -334,6 +334,18 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .pseudo-top { font-size: 14px; font-weight: 700; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pseudo-top:empty { display: none; }
 
+/* Éditeur de routine */
+.routines-hint { margin: 10px 0 4px; }
+.rd-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--surface-2); }
+.rd-item .pick-name { flex: 1; min-width: 0; }
+.rd-item .icon-btn { width: 36px; height: 36px; }
+.rd-item .icon-btn svg { width: 16px; height: 16px; }
+.rd-add { margin: 12px 0 16px; padding: 12px; border-radius: 16px; border: 1px dashed var(--steel); }
+.rd-pick { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 0; text-align: left; }
+.rd-pick .pick-name { flex: 1; min-width: 0; }
+.rd-pick > svg { width: 18px; height: 18px; color: var(--accent); }
+.rd-add-btn { margin: 12px 0 18px; }
+
 /* Démarrer : routines */
 .empty > .muted { margin-bottom: 18px; }
 .routines { display: grid; gap: 10px; margin-bottom: 14px; }
