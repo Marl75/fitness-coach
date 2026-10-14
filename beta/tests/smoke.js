@@ -159,6 +159,17 @@
     ok([...document.querySelectorAll('#picker-list .pick-name')].some(n => n.textContent.includes('Bench press')), 'noms anglais absents');
     closeSheet(); toggleLanguage(); closeSheet(); await wait();
   });
+  await step('Statistiques : rien en démo, calcul de l’activité', async () => {
+    await recordVisit(); ok(!usageRecorded, 'le suivi ne doit pas tourner en démo');
+    const a = activityByMonth([{ id: '2026-03-02', entries: [
+      { kind: 'sets', sets: [{ reps: 10, weight: 5, done: true }, { reps: 8, weight: 5, done: true }, { reps: 8, weight: 5, done: false }] },
+      { kind: 'cardio', duration: 30 }, { kind: 'cardio', duration: 15, pending: true }] }]);
+    const m = a['2026-03'];
+    ok(m && m.days === 1 && m.exercises === 2 && m.sets === 2 && m.cardioMin === 30, 'activité mal calculée : ' + JSON.stringify(m));
+  });
+  await step('Lien confidentialité', async () => {
+    openMenu(); ok($('#sheet a.privacy-link'), 'lien absent du compte'); closeSheet(); await wait();
+  });
   await step('Aucune erreur JavaScript', async () => { ok(!errors.length, errors.join(' | ')); });
 
   const failed = results.filter(r => !r.ok);

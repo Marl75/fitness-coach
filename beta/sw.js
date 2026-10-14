@@ -3,7 +3,7 @@
 // - Bibliothèques Firebase et polices (adresses versionnées) : copie locale d'abord.
 // - Données Firestore et connexion : jamais interceptées (Firestore gère lui-même le hors connexion).
 // Penser à ajouter ici tout nouveau fichier js et à changer le nom du cache.
-const CACHE = 'fitcoach-beta-20261014235302';
+const CACHE = 'fitcoach-beta-20261015003603';
 const CORE = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ const CORE = [
   './js/tips.js',
   './js/insights.js',
   './js/routines.js',
+  './js/usage.js',
   './js/core.js',
   './js/session.js',
   './js/picker.js',
