@@ -233,7 +233,7 @@ Object.assign(I18N.fr, {
   myExercisesEmpty: 'Tu n’as pas encore créé d’exercice.', noMuscles: 'Muscles non renseignés', looksLike: 'Ressemble à :',
   attachTo: 'Rattacher à « {name} »', attachOther: 'Choisir un autre', attachPick: 'Rattacher à un exercice de la liste',
   editMuscles: 'Muscles', attachConfirm: 'Rattacher « {a} » à « {b} » ? Ses {n} séances passeront sous « {b} » et « {a} » sera supprimé.',
-  attached: 'Rattaché à « {name} »', autoAttached_one: '{n} ancien exercice rattaché à la liste', autoAttached_other: '{n} anciens exercices rattachés à la liste',
+  attached: 'Rattaché à « {name} »',
   // Créer
   fieldsToLog: 'Infos à noter', musclesWorked: 'Muscles travaillés (facultatif)',
   variant: 'Créer une variante', variantName: '{name} (variante)', variantOf: 'Variante de « {name} » : même type et mêmes infos à noter, historique à part.',
@@ -323,7 +323,7 @@ Object.assign(I18N.en, {
   myExercisesEmpty: 'You haven’t created any exercise yet.', noMuscles: 'Muscles not set', looksLike: 'Looks like:',
   attachTo: 'Link to “{name}”', attachOther: 'Pick another', attachPick: 'Link to an exercise from the list',
   editMuscles: 'Muscles', attachConfirm: 'Link “{a}” to “{b}”? Its {n} sessions will move under “{b}” and “{a}” will be deleted.',
-  attached: 'Linked to “{name}”', autoAttached_one: '{n} old exercise linked to the list', autoAttached_other: '{n} old exercises linked to the list',
+  attached: 'Linked to “{name}”',
   fieldsToLog: 'Details to log', musclesWorked: 'Muscles worked (optional)',
   variant: 'Create a variant', variantName: '{name} (variant)', variantOf: 'Variant of “{name}”: same type and details, separate history.',
   m_pecs: 'Chest', m_lats: 'Lats (back)', m_upperback: 'Upper back (between shoulder blades)', m_traps: 'Upper traps (neck)', m_shoulders: 'Shoulders',

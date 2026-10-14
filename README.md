@@ -36,3 +36,12 @@ A small progressive web app to log workouts and keep track of your consistency.
 - [Firebase](https://firebase.google.com/) Authentication (email and password) and Firestore; configuration in `js/config.js`, security rules in `firestore.rules`
 - Language follows the browser; `?lang=en` or `?lang=fr` in the address forces it
 - Without a configuration, or with `?demo` in the address, the app runs in demo mode with fake data kept in the browser
+
+## Development
+
+- **Code layout**: `js/core.js` (state, history, navigation, bottom sheet), one file per screen (`session.js`, `picker.js`, `entry.js`, `track.js`, `account.js`), shared modules (`exercises.js`, `pictos.js`, `tips.js`, `insights.js`, `routines.js`…) and `boot.js`, loaded last
+- **Branches**: work happens on `dev`; `main` is what everyone uses
+- **Test version**: `tools/publish-beta.sh` publishes `dev` to [marl75.github.io/fitness-coach/beta/](https://marl75.github.io/fitness-coach/beta/) without touching the main version; it runs on demo data unless `?real` is added
+- **Regression test**: open the app with `?demo&smoke`; it goes through every screen and action and shows the result (demo data only)
+- **Release**: `tools/release.sh` merges `dev` into `main` and bumps the version (`tools/bump-version.sh`) so phones reload the new files
+

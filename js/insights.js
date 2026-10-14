@@ -318,31 +318,3 @@ function attachMany(map) {
   });
   ids.forEach(deleteCustomExercise);
 }
-
-// Anciens exercices créés (appli FitCoach), rattachés automatiquement une fois les données reçues.
-// Correspondances confirmées par l'utilisatrice (nom simplifié → exercice de la liste).
-const AUTO_ATTACH = {
-  'bras': 'triceps-poulie',
-  'tire de cordes': 'triceps-poulie',
-  'leve de poids dos parallele au sol': 'row-haltere',
-  'montee de genoux': 'releve-jambes',
-  'jambes inner thigh': 'adduction',
-  'jambes outer thigh': 'abduction',
-  'jambes seated leg press': 'leg-press',
-  'traction': 'pullup',
-};
-let autoAttachDone = false;
-function autoAttachOld() {
-  if (autoAttachDone || DEMO_SKIP_AUTO() || !['sessions', 'exercises', 'settings'].every(k => Data.loaded[k])) return;
-  autoAttachDone = true;
-  const map = {};
-  for (const e of Data.exercises) {
-    const to = AUTO_ATTACH[simple(e.name)];
-    if (to && CATALOG_BY_ID[to]) map[e.id] = to;
-  }
-  if (!Object.keys(map).length) return;
-  attachMany(map);
-  toast(tn('autoAttached', Object.keys(map).length));
-}
-// En démo, seulement si on le demande (?autoattach) : évite de toucher aux exercices de test
-const DEMO_SKIP_AUTO = () => DEMO && !new URLSearchParams(location.search).has('autoattach');

@@ -6,6 +6,6 @@ set -e
 DIR="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
 V=$(date +%Y%m%d%H%M%S)
 sed -i.bak -E "s/\?v=[0-9]+/?v=$V/g" "$DIR/index.html"
-sed -i.bak -E "s/const CACHE = 'fitcoach-[^']*'/const CACHE = 'fitcoach-$V'/" "$DIR/sw.js"
+sed -i.bak -E "s/const CACHE = 'fitcoach-(beta-)?[^']*'/const CACHE = 'fitcoach-\1$V'/" "$DIR/sw.js"
 rm -f "$DIR/index.html.bak" "$DIR/sw.js.bak"
 echo "Version $V"

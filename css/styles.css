@@ -45,6 +45,9 @@ h3 { font-size: 30px; }
 .eyebrow { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
 .label { font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
 
+/* Bandeau de la version de test (beta/) */
+.beta-bar { position: sticky; top: 0; z-index: 30; padding: 6px 12px; background: #F0B44A; color: #0F1115; font-size: 12px; font-weight: 800; text-align: center; }
+
 /* ===== Connexion ===== */
 .auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
 .auth-card { width: 100%; max-width: 380px; }
