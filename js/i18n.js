@@ -185,7 +185,7 @@ Object.assign(I18N.fr, {
   variant: 'Créer une variante', variantName: '{name} (variante)', variantOf: 'Variante de « {name} » : même type et mêmes infos à noter, historique à part.',
   // Muscles
   m_pecs: 'Pectoraux', m_lats: 'Grand dorsal (dos)', m_upperback: 'Haut du dos, trapèzes', m_shoulders: 'Épaules',
-  m_biceps: 'Biceps', m_triceps: 'Triceps', m_abs: 'Abdos', m_obliques: 'Obliques', m_lowerback: 'Lombaires',
+  m_biceps: 'Biceps', m_triceps: 'Triceps', m_forearms: 'Avant-bras', m_hipflexors: 'Fléchisseurs de hanche (psoas)', m_abs: 'Abdos', m_obliques: 'Obliques', m_lowerback: 'Lombaires',
   m_glutes: 'Fessiers', m_quads: 'Quadriceps', m_hams: 'Ischio-jambiers', m_adductors: 'Adducteurs (intérieur cuisses)',
   m_abductors: 'Abducteurs (extérieur cuisses)', m_calves: 'Mollets',
 });
@@ -219,7 +219,7 @@ Object.assign(I18N.en, {
   fieldsToLog: 'Details to log', musclesWorked: 'Muscles worked (optional)',
   variant: 'Create a variant', variantName: '{name} (variant)', variantOf: 'Variant of “{name}”: same type and details, separate history.',
   m_pecs: 'Chest', m_lats: 'Lats (back)', m_upperback: 'Upper back, traps', m_shoulders: 'Shoulders',
-  m_biceps: 'Biceps', m_triceps: 'Triceps', m_abs: 'Abs', m_obliques: 'Obliques', m_lowerback: 'Lower back',
+  m_biceps: 'Biceps', m_triceps: 'Triceps', m_forearms: 'Forearms', m_hipflexors: 'Hip flexors', m_abs: 'Abs', m_obliques: 'Obliques', m_lowerback: 'Lower back',
   m_glutes: 'Glutes', m_quads: 'Quads', m_hams: 'Hamstrings', m_adductors: 'Adductors (inner thighs)',
   m_abductors: 'Abductors (outer thighs)', m_calves: 'Calves',
 });
