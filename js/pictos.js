@@ -121,7 +121,8 @@ const KIND_PROP = {
 // Où dessiner chaque muscle sur la silhouette : segment du corps et portion [début, fin]
 const MUSCLE_ON = {
   pecs: [['s', 'p', 0.08, 0.38]],
-  upperback: [['s', 'p', 0, 0.32], ['s', 'eL', 0, 0.3], ['s', 'eR', 0, 0.3]],
+  upperback: [['s', 'p', 0.05, 0.35]],
+  traps: [['h', 's', 0.6, 1], ['s', 'eL', 0, 0.22], ['s', 'eR', 0, 0.22]],
   lats: [['s', 'p', 0.22, 0.62]],
   abs: [['s', 'p', 0.45, 0.88]],
   obliques: [['s', 'p', 0.45, 0.88]],
@@ -148,8 +149,10 @@ function muscleMarks(pose, list, cls) {
   for (const m of list) for (const [from, to, t0, t1] of MUSCLE_ON[m] || []) {
     const a = pose[from], b = pose[to];
     if (!a || !b) continue;
-    if (from === to) { out += `<circle class="${cls}" cx="${a[0]}" cy="${a[1]}" r="1.9"/>`; continue; }
-    out += `<path class="${cls}" d="M${pt(lerp(a, b, t0))} L${pt(lerp(a, b, t1))}"/>`;
+    // Muscle « à ménager » dans tes objectifs : en orange
+    const c = cls + (muscleGoal(m) === 'down' ? ' warn' : '');
+    if (from === to) { out += `<circle class="${c}" cx="${a[0]}" cy="${a[1]}" r="1.9"/>`; continue; }
+    out += `<path class="${c}" d="M${pt(lerp(a, b, t0))} L${pt(lerp(a, b, t1))}"/>`;
   }
   return out;
 }
@@ -168,10 +171,12 @@ function pictoSvg(ex, size = 40) {
   </svg>`;
 }
 const pictoTile = (ex, cls = '') => `<span class="picto ${cls}">${pictoSvg(ex)}</span>`;
+// Nom court d'un muscle, sans la précision entre parenthèses : « trapèzes », « haut du dos »
+const muscleShort = m => t('m_' + m).replace(/\s*\(.*\)$/, '').toLowerCase();
 // « Pectoraux · un peu triceps, épaules »
 function musclesLine(ex) {
   const [main, sec] = musclesOf(ex);
   if (!main.length) return '';
   const extra = sec.filter(m => !main.includes(m));
-  return main.map(m => t('m_' + m)).join(', ') + (extra.length ? ` · ${t('alsoLittle')} ${extra.map(m => t('m_' + m).toLowerCase()).join(', ')}` : '');
+  return main.map(m => t('m_' + m)).join(', ') + (extra.length ? ` · ${t('alsoLittle')} ${extra.map(muscleShort).join(', ')}` : '');
 }

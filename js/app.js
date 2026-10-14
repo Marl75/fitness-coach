@@ -226,6 +226,57 @@ function toggleFav(id) {
   toast(on ? t('addedFav') : t('removedFav'));
 }
 
+// ===== OBJECTIFS PAR MUSCLE =====
+// prefs.goals : { muscle: 'up' (à développer) | 'down' (à ménager) }. Sert aux pictos (orange),
+// aux avertissements, au filtre « Mes objectifs » et, plus tard, aux recommandations.
+const muscleGoal = m => (prefs().goals || {})[m] || null;
+const hasUpGoals = () => Object.values(prefs().goals || {}).includes('up');
+const muscleNames = list => list.map(muscleShort).join(', ');
+function setGoal(m, g) {
+  const goals = { ...(prefs().goals || {}) };
+  if (g) goals[m] = g; else delete goals[m];
+  savePrefs({ goals });
+}
+// « Sollicite surtout : trapèzes (à ménager) »
+function goalNote(ex) {
+  const [main, sec] = musclesOf(ex);
+  const dMain = main.filter(m => muscleGoal(m) === 'down');
+  const dSec = sec.filter(m => !main.includes(m) && muscleGoal(m) === 'down');
+  if (dMain.length) return t('goalWarnMain', { m: muscleNames(dMain) });
+  if (dSec.length) return t('goalWarnSec', { m: muscleNames(dSec) });
+  return '';
+}
+// Plus c'est haut, plus l'exercice va dans le sens de tes objectifs
+function goalScore(ex) {
+  const [main, sec] = musclesOf(ex);
+  let s = 0;
+  for (const m of main) s += muscleGoal(m) === 'up' ? 2 : muscleGoal(m) === 'down' ? -3 : 0;
+  for (const m of sec) if (!main.includes(m)) s += muscleGoal(m) === 'up' ? 1 : muscleGoal(m) === 'down' ? -1 : 0;
+  return s;
+}
+function goalsSummary() {
+  const g = prefs().goals || {};
+  const up = MUSCLES.filter(m => g[m] === 'up'), down = MUSCLES.filter(m => g[m] === 'down');
+  return [up.length && t('goalsSumUp', { m: muscleNames(up) }), down.length && t('goalsSumDown', { m: muscleNames(down) })].filter(Boolean).join(' · ');
+}
+function openGoals() {
+  openSheet(`
+    <div class="sheet-head">
+      <div><div class="eyebrow">${t('account')}</div><h3>${t('goalsTitle')}</h3></div>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
+    </div>
+    <p class="muted small">${t('goalsHint')}</p>
+    <div id="goals-list"></div>`, renderGoals);
+}
+function renderGoals() {
+  const box = $('#goals-list');
+  if (!box) return;
+  box.innerHTML = MUSCLES.map(m => `<div class="goal-line"><span>${t('m_' + m)}</span>
+    <div class="seg small" role="radiogroup" aria-label="${esc(t('m_' + m))}">${[['up', t('goalUp')], [null, '—'], ['down', t('goalDown')]].map(([g, label]) =>
+      `<button class="${muscleGoal(m) === g ? 'active' : ''} ${g || 'none'}" role="radio" aria-checked="${muscleGoal(m) === g}" onclick="setGoal('${m}',${g ? `'${g}'` : 'null'})">${label}</button>`).join('')}</div>
+  </div>`).join('');
+}
+
 // ===== MASQUÉS =====
 // Exercices qui ne t'intéressent pas ou pas dispo : rangés en bas de la liste, repliés.
 const isHidden = id => (prefs().hidden || []).includes(id);
@@ -284,6 +335,7 @@ function pickerFilters() {
   const hasRecent = recentExerciseIds(1).length > 0;
   return [
     { id: 'fav', label: t('favorites') },
+    hasUpGoals() && { id: 'goals', label: t('f_goals') },
     hasRecent && { id: 'recent', label: t('f_recent') },
     { id: 'all', label: t('f_all') },
     ...GROUPS.filter(g => g.id !== 'custom').map(g => ({ id: g.id, label: g.label })),
@@ -338,7 +390,7 @@ function pickItem(ex) {
   const musc = musclesLine(ex);
   return `<div class="pick">
     <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')">${pictoTile(ex)}<span class="pick-text"><span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}
-      ${musc ? `<span class="pick-musc">${esc(musc)}</span>` : ''}<span class="pick-sub">${esc(sub)}</span></span></button>
+      ${musc ? `<span class="pick-musc">${esc(musc)}</span>` : ''}${goalNote(ex) ? `<span class="pick-warn">${esc(goalNote(ex))}</span>` : ''}<span class="pick-sub">${esc(sub)}</span></span></button>
     <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? t('favOn') : t('favOff')} : ${esc(exLabel(ex))}">${icon('star')}</button>
     <button class="hide-btn" onclick="toggleHidden('${esc(ex.id)}')" aria-label="${t('hide')} : ${esc(exLabel(ex))}">${icon('eyeoff')}</button>
   </div>`;
@@ -371,6 +423,10 @@ function renderPickerList() {
       const favs = favorites().map(findExercise);
       html += favs.length ? favs.map(pickItem).join('')
         : `<p class="muted small empty-list">${t('noFavs', { star: icon('star') })}</p>`;
+    } else if (f === 'goals') {
+      const list = all.map(e => ({ e, s: goalScore(e) })).filter(x => x.s > 0)
+        .sort((a, b) => b.s - a.s || byName(a.e, b.e)).map(x => x.e);
+      html += `<p class="muted small empty-list">${t('goalsFilterHint')}</p>` + list.map(pickItem).join('');
     } else if (f === 'recent') {
       const recent = recentExerciseIds(12).map(findExercise).filter(Boolean);
       html += recent.filter(e => !isHidden(e.id)).map(pickItem).join('');
@@ -690,7 +746,8 @@ function renderSetup() {
       <button class="btn-accent" onclick="addMove()">${t('moveAdd')}</button></div><p class="muted small hint">${t('moveAddHint')}</p>` : ''}
     <p class="sub-label">${t('target')}</p>
     <div class="chips wrap">${MUSCLES.map(m => chip((st.target || []).includes(m), `toggleTarget('${m}')`, t('m_' + m))).join('')}</div>
-    <p class="works">${pictoTile(ex, 'big')}<span>${p.length ? t('worksMost', { p: `<b>${p.map(m => t('m_' + m)).join(', ')}</b>` }) + (sec.length ? ' ' + t('worksAlso', { s: sec.map(m => t('m_' + m)).join(', ') }) : '') : t('worksUnknown')}</span></p>`;
+    <p class="works">${pictoTile(ex, 'big')}<span>${p.length ? t('worksMost', { p: `<b>${p.map(m => t('m_' + m)).join(', ')}</b>` }) + (sec.length ? ' ' + t('worksAlso', { s: sec.map(m => t('m_' + m)).join(', ') }) : '') : t('worksUnknown')}</span></p>
+    ${goalNote(ex) ? `<p class="goal-warn">${esc(goalNote(ex))}</p>` : ''}`;
   setupDraft.moves = moves;
 }
 function toggleSetup(k) { setupDraft.setup[k] = !setupDraft.setup[k]; renderSetup(); }
@@ -1076,6 +1133,7 @@ function openMenu() {
     <div class="goal"><span>${t('language')}</span>${langSwitchHtml()}</div>
     <div class="menu-list">
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
+      <button class="btn-line" onclick="openGoals()">${t('goalsTitle')}${goalsSummary() ? `<span class="btn-sub">${esc(goalsSummary())}</span>` : ''}</button>
       <button class="btn-line" onclick="logout()">${t('logout')}</button>
     </div>`);
 }

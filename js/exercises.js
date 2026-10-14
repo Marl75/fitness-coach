@@ -156,12 +156,14 @@ const EX_FIELDS = {
 };
 
 // ===== MUSCLES =====
-const MUSCLES = ['pecs', 'lats', 'upperback', 'shoulders', 'biceps', 'triceps', 'forearms', 'abs', 'obliques', 'lowerback',
+const MUSCLES = ['pecs', 'lats', 'upperback', 'traps', 'shoulders', 'biceps', 'triceps', 'forearms', 'abs', 'obliques', 'lowerback',
   'hipflexors', 'glutes', 'quads', 'hams', 'adductors', 'abductors', 'calves'];
 // Ce que chaque exercice du catalogue travaille vraiment : [principaux, secondaires]
 // Muscu : muscle cible (principal) et muscles synergistes (secondaires) d'ExRx.net ;
 // cardio : études EMG (marche inclinée : Franz & Kram 2012 ; hip thrust : Contreras 2015 ;
 // pull-over : Marchetti & Uchida 2011 ; porter des charges : McGill 2009 ; rameur, vélo, elliptique).
+// Trapèzes (haut) : cible des shrugs (ExRx) ; aussi sollicités par les élévations latérales (EMG),
+// le travail au-dessus de la tête, et les charges tenues bras tendus (stabilisateurs).
 const EX_MUSCLES = {
   'lat-pulldown': [['lats'], ['biceps', 'upperback']],
   'tirage-horizontal': [['upperback', 'lats'], ['biceps', 'shoulders']],
@@ -170,23 +172,23 @@ const EX_MUSCLES = {
   'face-pull': [['shoulders'], ['upperback']],
   'dev-couche': [['pecs'], ['triceps', 'shoulders']],
   'dev-incline': [['pecs'], ['shoulders', 'triceps']],
-  'devmili': [['shoulders'], ['triceps', 'upperback']],
+  'devmili': [['shoulders'], ['triceps', 'traps', 'upperback']],
   'pec-deck': [['pecs'], []],
   'ecarte-poulie': [['pecs'], []],
-  'lateral': [['shoulders'], ['upperback']],
+  'lateral': [['shoulders'], ['traps', 'upperback']],
   'reversefly': [['shoulders'], ['upperback']],
   'curl': [['biceps'], ['forearms']],
   'curl-marteau': [['forearms'], ['biceps']],
   'triceps-poulie': [['triceps'], []],
   'dips': [['pecs', 'triceps'], ['shoulders']],
-  'shrug': [['upperback'], []],
+  'shrug': [['traps'], ['upperback']],
   'pullover': [['pecs', 'lats'], ['triceps']],
   'squat': [['quads'], ['glutes', 'adductors']],
   'leg-press': [['quads'], ['glutes', 'adductors']],
   'squat-bulgare': [['glutes', 'quads'], ['adductors']],
   'fentes': [['quads'], ['glutes', 'adductors']],
   'hipthrust': [['glutes'], ['hams', 'quads']],
-  'rdl': [['hams'], ['glutes', 'lowerback', 'adductors']],
+  'rdl': [['hams'], ['glutes', 'lowerback', 'adductors', 'traps']],
   'legext': [['quads'], []],
   'legcurl': [['hams'], ['calves']],
   'abduction': [['abductors'], ['glutes']],
@@ -210,7 +212,7 @@ const EX_MUSCLES = {
   'rameur': [['quads', 'glutes'], ['lats', 'upperback', 'biceps']],
   'corde': [['calves'], ['quads', 'shoulders']],
   'natation': [['lats', 'shoulders'], ['pecs', 'triceps']],
-  'allers-retours': [['forearms', 'upperback'], ['abs', 'obliques', 'lowerback']],
+  'allers-retours': [['forearms', 'traps'], ['abs', 'obliques', 'lowerback']],
 };
 // Muscles d'un exercice : catalogue, sinon ceux choisis à la création (tous comptés comme principaux)
 function musclesOf(ex) {

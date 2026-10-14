@@ -13,6 +13,7 @@
   --accent-ink: #0F1115;
   --accent-soft: rgba(143, 227, 192, 0.12);
   --danger: #FF8A7A;
+  --warn: #F0B44A;
   --serif: 'DM Serif Display', Georgia, serif;
   --sans: 'DM Sans', -apple-system, system-ui, sans-serif;
   --nav-h: 68px;
@@ -253,6 +254,15 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .now { background: var(--surface); }
 .now .picto { background: var(--bg); }
 .works { display: flex; gap: 12px; align-items: center; }
+
+/* Objectifs par muscle */
+.picto-svg .pm.warn { stroke: var(--warn); fill: var(--warn); }
+.pick-warn, .goal-warn { font-size: 13px; color: var(--warn); font-weight: 600; }
+.goal-warn { margin-top: 8px; }
+.goal-line { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; padding: 9px 0; border-bottom: 1px solid var(--surface-2); }
+.goal-line > span { font-weight: 600; font-size: 14px; }
+.seg button.down.active { background: var(--warn); }
+.btn-sub { display: block; font-size: 13px; font-weight: 500; color: var(--text-dim); margin-top: 2px; }
 
 /* ===== Suivi ===== */
 .card { background: var(--surface); border-radius: 22px; padding: 18px; margin-bottom: 14px; }

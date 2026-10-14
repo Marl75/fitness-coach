@@ -18,6 +18,7 @@ A small progressive web app to log workouts and keep track of your consistency.
 - **Strength setup**: machine or not, dumbbells, position, bench (flat, incline, decline and angle), movement (your own options are remembered) and the muscle you want to work, next to the muscles the exercise really works
 - **Everything from last time is pre-filled**: weights, reps, setup, speed, incline, track…
 - **A picture for every exercise**: a line figure doing the movement, with the muscles it works highlighted in green (custom exercises get a generic figure with the muscles you chose)
+- **Goals per muscle**: mark muscles to develop or to go easy on (e.g. upper traps); muscles to go easy on show in orange with a warning, and a “My goals” filter lists the best-matching exercises first
 - **Custom exercises and variants** with the details you choose; in French, catalogue exercises also show their English name
 - **Exercise picker** with categories, favourites and duplicate detection; unused exercises can be hidden
 - **Log another day** from a calendar showing the days you trained
