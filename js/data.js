@@ -11,6 +11,7 @@ const Data = {
   exercises: [],  // exercices créés par l'utilisateur
   settings: [],   // réglages (document « prefs » : objectif par semaine)
   pending: false, // des écritures attendent le réseau
+  loaded: {},     // collections reçues du serveur (pas seulement du cache)
 };
 
 const Backend = DEMO ? demoBackend() : firebaseBackend();
@@ -35,6 +36,7 @@ function firebaseBackend() {
       for (const name of ['sessions', 'exercises', 'settings']) {
         unsubs.push(col(name).onSnapshot({ includeMetadataChanges: true }, snap => {
           Data[name] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          if (!snap.metadata.fromCache) Data.loaded[name] = true;
           pending[name] = snap.metadata.hasPendingWrites;
           Data.pending = Object.values(pending).some(Boolean);
           emit();
@@ -66,6 +68,7 @@ function demoBackend() {
     Data.sessions = Object.entries(store.sessions).map(([id, d]) => ({ id, ...d }));
     Data.exercises = Object.entries(store.exercises).map(([id, d]) => ({ id, ...d }));
     Data.settings = Object.entries(store.settings).map(([id, d]) => ({ id, ...d }));
+    Data.loaded = { sessions: true, exercises: true, settings: true };
     if (emitCb) emitCb();
   };
   const signIn = async email => {
@@ -124,6 +127,7 @@ function startAuth(onUser) {
     Data.sessions = [];
     Data.exercises = [];
     Data.settings = [];
+    Data.loaded = {};
     if (user) Backend.listen(() => {
       Data.sessions.sort((a, b) => b.id.localeCompare(a.id));
       onDataChange();

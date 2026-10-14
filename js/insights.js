@@ -174,29 +174,64 @@ function confirmAttach(customId, catId) {
   toast(t('attached', { name: exLabel(cat) }));
   openMyExercises();
 }
-// Rattache un exercice créé à un exercice de la liste : l'historique, les favoris, les notes…
-// passent sous l'exercice de la liste, puis l'exercice créé est supprimé.
-function attachExercise(customId, catId) {
-  const cat = CATALOG_BY_ID[catId];
+// Rattache des exercices créés à des exercices de la liste ({ idCréé: idListe }) : l'historique,
+// les favoris, les notes… passent sous l'exercice de la liste, puis les exercices créés sont supprimés.
+// Tout est fait en une passe (une écriture par séance, une seule pour les réglages).
+function attachExercise(customId, catId) { attachMany({ [customId]: catId }); }
+function attachMany(map) {
+  const ids = Object.keys(map);
   for (const s of Data.sessions) {
-    if (!(s.entries || []).some(e => e.exId === customId)) continue;
+    if (!(s.entries || []).some(e => map[e.exId])) continue;
     const copy = JSON.parse(JSON.stringify(s));
-    copy.entries.forEach(e => { if (e.exId === customId) { e.exId = catId; e.name = cat.name; } });
+    copy.entries.forEach(e => { const to = map[e.exId]; if (to) { e.exId = to; e.name = CATALOG_BY_ID[to].name; } });
     saveSession(copy);
   }
   const p = prefs();
-  const swap = list => [...new Set((list || []).map(id => (id === customId ? catId : id)))];
-  const moveKey = (obj, merge) => {
-    if (!obj || !(customId in obj)) return obj;
-    const { [customId]: v, ...rest } = obj;
-    return { ...rest, [catId]: rest[catId] !== undefined ? merge(rest[catId], v) : v };
+  const swap = list => [...new Set((list || []).map(id => map[id] || id))];
+  const moveKeys = (obj, merge) => {
+    if (!obj || !ids.some(id => id in obj)) return obj;
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const to = map[k] || k;
+      out[to] = out[to] !== undefined ? merge(out[to], v) : v;
+    }
+    return out;
   };
+  const listMerge = (a, b) => [...new Set([...a, ...b])];
   savePrefs({
     favorites: swap(p.favorites),
-    hidden: swap(p.hidden).filter(id => id !== catId || (p.hidden || []).includes(catId)),
-    extraFields: moveKey(p.extraFields, (a, b) => [...new Set([...a, ...b])]),
-    moves: moveKey(p.moves, (a, b) => [...new Set([...a, ...b])]),
-    exNotes: moveKey(p.exNotes, (a, b) => `${a}\n${b}`),
+    hidden: (p.hidden || []).filter(id => !map[id]),
+    extraFields: moveKeys(p.extraFields, listMerge),
+    moves: moveKeys(p.moves, listMerge),
+    exNotes: moveKeys(p.exNotes, (a, b) => `${a}\n${b}`),
   });
-  deleteCustomExercise(customId);
+  ids.forEach(deleteCustomExercise);
 }
+
+// Anciens exercices créés (appli FitCoach), rattachés automatiquement une fois les données reçues.
+// Correspondances confirmées par l'utilisatrice (nom simplifié → exercice de la liste).
+const AUTO_ATTACH = {
+  'bras': 'triceps-poulie',
+  'tire de cordes': 'triceps-poulie',
+  'leve de poids dos parallele au sol': 'row-haltere',
+  'montee de genoux': 'releve-jambes',
+  'jambes inner thigh': 'adduction',
+  'jambes outer thigh': 'abduction',
+  'jambes seated leg press': 'leg-press',
+  'traction': 'pullup',
+};
+let autoAttachDone = false;
+function autoAttachOld() {
+  if (autoAttachDone || DEMO_SKIP_AUTO() || !['sessions', 'exercises', 'settings'].every(k => Data.loaded[k])) return;
+  autoAttachDone = true;
+  const map = {};
+  for (const e of Data.exercises) {
+    const to = AUTO_ATTACH[simple(e.name)];
+    if (to && CATALOG_BY_ID[to]) map[e.id] = to;
+  }
+  if (!Object.keys(map).length) return;
+  attachMany(map);
+  toast(tn('autoAttached', Object.keys(map).length));
+}
+// En démo, seulement si on le demande (?autoattach) : évite de toucher aux exercices de test
+const DEMO_SKIP_AUTO = () => DEMO && !new URLSearchParams(location.search).has('autoattach');
