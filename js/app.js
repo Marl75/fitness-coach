@@ -75,7 +75,6 @@ function render() {
   if (!Data.user) return;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === UI.tab));
   $('#sync').classList.toggle('hidden', !(Data.pending || !navigator.onLine) || DEMO);
-  $('#pseudo-top').textContent = pseudo();
   if (UI.tab === 'today') renderToday(); else renderTrack();
 }
 onDataChange = () => { autoAttachOld(); render(); if (sheetRefresh) sheetRefresh(); };
@@ -94,37 +93,45 @@ setInterval(() => { const el = $('#chrono'); if (el) el.textContent = chronoText
 function renderToday() {
   const today = isoDate();
   const isToday = UI.date === today;
-  const entries = (sessionOf(UI.date) || {}).entries || [];
+  const session = sessionOf(UI.date) || {};
+  const entries = session.entries || [];
   const last = activeSessions().find(s => s.id < UI.date);
   const weekCount = sessionsInRange(isoDate(mondayOf(new Date())), today);
-  const current = entries.find(e => pendingIndex(e) >= 0);
+  const current = entries.find(isPending);
+  // Séance lancée depuis une routine : « Haut du corps · 2 / 5 »
+  const eyebrow = session.routine && entries.length
+    ? `${esc(session.routine.name)} · ${entries.filter(e => !isPending(e)).length} / ${entries.length}`
+    : cap(fmtDay(UI.date));
 
   let html = `
     <div class="page-head">
       <div class="head-row">
-        <span class="eyebrow">${cap(fmtDay(UI.date))}</span>
+        <span class="eyebrow">${eyebrow}</span>
         <span class="chrono" id="chrono">${chronoText()}</span>
       </div>
       <div class="head-row">
-        <h1>${isToday ? t('todayTitle') : t('dayTitle', { date: esc(fmtShort(UI.date)) })}</h1>
+        <h1>${!entries.length && isToday ? t('startTitle') : isToday ? t('todayTitle') : t('dayTitle', { date: esc(fmtShort(UI.date)) })}</h1>
         ${current ? '' : `<button class="date-chip" onclick="openDayPicker()" aria-label="${t('otherDayAria')}">${icon('cal')}${t('otherDay')}</button>`}
       </div>
     </div>`;
 
   if (!entries.length) {
+    const hint = isToday ? startHint() : '';
     html += `
       <div class="empty">
-        <p class="empty-title">${isToday ? t('noSportToday') : t('noSessionDay')}</p>
-        <p class="muted">${last ? t('lastSession', { when: relDay(last.id) }) : t('firstSession')}
-          ${isToday ? `<br>${t('weekProgress', { n: weekCount, goal: weeklyGoal() })}` : ''}</p>
-        <button class="btn-accent big" onclick="openPicker()">${icon('plus')}${isToday ? t('startSession') : t('addExercise')}</button>
-      ${quickFavs()}
+        <p class="muted">${isToday ? t('weekProgress', { n: weekCount, goal: weeklyGoal() }) : t('noSessionDay')}
+          ${hint ? ` ${hint}` : ''}${!isToday && last ? '' : ''}</p>
+        ${routineCardsHtml()}
+        <button class="${routines().length ? 'btn-outline' : 'btn-accent big'}" onclick="openPicker()">${icon('plus')}${isToday ? t('freeSession') : t('addExercise')}</button>
+        ${!routines().length && isToday ? `<p class="muted small routine-hint">${t('routineHint')}</p>` : ''}
+        ${quickFavs()}
       </div>`;
   } else {
     html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e)).join('')}</div>
       <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current ? t('addAnother') : t('nextExercise')}</button>
       ${current ? '' : quickFavs()}
-      ${entries.some(entryDone) ? `<p class="muted small center foot">${sessionFoot(entries)}</p>` : ''}`;
+      ${entries.some(entryDone) ? `<p class="muted small center foot">${sessionFoot(entries)}</p>` : ''}
+      ${!current && entries.some(entryDone) ? `<p class="center"><button class="link" onclick="openSaveRoutine()">${t('saveAsRoutine')}</button></p>` : ''}`;
   }
   if (!isToday) html += `<p class="center"><button class="link" onclick="goToDay('${today}')">${t('backToday')}</button></p>`;
   $('#view').innerHTML = html;
@@ -146,9 +153,10 @@ function sessionFoot(entries) {
 }
 
 function entryRow(e) {
-  const pi = pendingIndex(e);
-  const sub = pi >= 0 && !doneSets(e).length ? tn('plannedSets', e.sets.length) : entrySummary(e);
-  const mark = entryDone(e) && pi < 0 ? `<span class="row-mark">${icon('check')}</span>` : icon('chev');
+  const pending = isPending(e);
+  const sub = e.kind === 'sets' ? (pending && !doneSets(e).length ? tn('plannedSets', e.sets.length) : entrySummary(e))
+    : (pending ? t('plannedShort') : entrySummary(e));
+  const mark = !pending ? `<span class="row-mark">${icon('check')}</span>` : icon('chev');
   const setup = setupSummary(e.setup);
   return `<button class="row" onclick="openEntry('${esc(e.id)}')">${pictoTile(exOfEntry(e))}
     <span class="row-main"><span class="row-name">${esc(entryName(e))}</span>${enLine(entryEn(e))}<span class="row-sub">${esc(sub)}</span>
@@ -159,6 +167,7 @@ function entryRow(e) {
 // L'exercice en cours : un tableau des séries (poids, répétitions, coche).
 // La ligne en cours a ses boutons − / + ; toucher un poids ou un nombre ouvre le réglage précis.
 function currentCard(e) {
+  if (e.kind !== 'sets') return cardioCard(e);
   const i = pendingIndex(e);
   const id = esc(e.id);
   const last = historyOf(e.exId).find(h => h.date < UI.date);
@@ -180,10 +189,11 @@ function currentCard(e) {
       <button class="icon-btn now-close" onclick="removeCurrent('${id}')" aria-label="${t('removeEx')}">${icon('close')}</button>
       <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">${icon('info')}</span></button>
       <div class="now-head-text"><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
-        ${last ? `<p class="now-last">${esc(t('lastShort', { what: entrySummary(last.entry) }))}</p>` : ''}</div>
+        <p class="now-last">${esc(nowSubline(e.exId, last))}</p>
+        ${tipsChip(e.exId)}</div>
     </div>
     ${setup ? `<p class="now-setup">${esc(setup)}</p>` : ''}
-    ${i >= 0 ? progressionHtml(e.exId, e.id) : ''}
+    ${progressionChip(e.exId, e.id)}
     <div class="sets-grid">
       <div class="srow hd"><span class="sn">#</span><span>${t('colWeight')}</span><span>${t('colReps')}</span><span></span></div>
       ${rows}
@@ -193,11 +203,72 @@ function currentCard(e) {
       <button onclick="stopEntry('${id}')">${t('finishEx')}</button>
     </div>
     <div class="now-links">
-      <button onclick="finishAll('${id}')">${t('validateAll')}</button>
-      <button class="tips-link" onclick="openTips('${esc(e.exId)}')">${t('tipsLink')}</button>
       <button onclick="openEntry('${id}')">${t('details')}</button>
     </div>
   </section>`;
+}
+
+// « Objectif 8 à 12 rép. · dernière fois 3 × 12 »
+function nowSubline(exId, last) {
+  const tg = repTarget(exId);
+  return [tg && t('repTargetShort', { a: tg[0], b: tg[1] }), last && t('lastShortLower', { what: entrySummary(last.entry) })].filter(Boolean).join(' · ');
+}
+const tipsChip = exId => `<button class="tips-chip" onclick="openTips('${esc(exId)}')">${icon('info')}${t('tipsChip')}</button>`;
+
+// ----- Carte en cours (cardio, cours) : les champs de l'exercice, préremplis -----
+function cardioCard(e) {
+  const id = esc(e.id);
+  const last = historyOf(e.exId).find(h => h.date < UI.date);
+  const fields = fieldsFor(e.exId, e.kind, e);
+  const cells = fields.filter(k => k !== 'track').map(k => `<div class="fcell">
+      <p class="flabel">${t('fs_' + k)}</p>
+      <div class="fstep"><button onclick="stepEntryField('${id}','${k}',-1)" aria-label="${t('minus')} : ${t('fs_' + k)}">${icon('minus')}</button>
+        <input class="serif" inputmode="decimal" value="${e[k] === null || e[k] === undefined ? '' : fmtNum(e[k])}" placeholder="—" onchange="setEntryField('${id}','${k}',this.value)" onfocus="this.select()" aria-label="${t('fs_' + k)}">
+        <button onclick="stepEntryField('${id}','${k}',1)" aria-label="${t('plus')} : ${t('fs_' + k)}">${icon('plus')}</button></div>
+      <p class="funit">${t('unit_' + k)}</p></div>`).join('');
+  const track = fields.includes('track') ? `<div class="chips wrap ftrack">${tracks().map(tr =>
+    `<button class="chip${e.track === tr.id ? ' active' : ''}" onclick="setEntryTrack('${id}','${esc(tr.id)}')">${esc(tr.name)}</button>`).join('')}</div>` : '';
+  const diff = cardioDiff(e, last && last.entry);
+  return `<section class="now sets" aria-label="${t('currentAria')}">
+    <div class="now-head">
+      <button class="icon-btn now-close" onclick="removeCurrent('${id}')" aria-label="${t('removeEx')}">${icon('close')}</button>
+      <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">${icon('info')}</span></button>
+      <div class="now-head-text"><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
+        ${last ? `<p class="now-last">${esc(t('lastShort', { what: entrySummary(last.entry) }))}</p>` : ''}
+        ${tipsChip(e.exId)}</div>
+    </div>
+    <div class="fgrid">${cells}</div>
+    ${track}
+    ${diff ? `<p class="progress-chip static"><span class="pc-arrow">↑</span><span>${esc(diff)}</span></p>` : ''}
+    <button class="btn-accent big" onclick="finishCardio('${id}')">${icon('check')}${t('done')}</button>
+    <div class="now-links"><button onclick="openEntry('${id}')">${t('details')}</button></div>
+  </section>`;
+}
+// « Par rapport à la dernière fois : pente +1 %, vitesse +0,5 km/h »
+function cardioDiff(e, prev) {
+  if (!prev) return '';
+  const parts = FIELD_ORDER.filter(k => k !== 'track' && typeof e[k] === 'number' && typeof prev[k] === 'number' && e[k] !== prev[k])
+    .map(k => { const d = Math.round((e[k] - prev[k]) * 100) / 100; return t('sum_' + k, { v: (d > 0 ? '+' : '−') + fmtNum(Math.abs(d)) }); });
+  return parts.length ? t('vsLast', { what: parts.join(', ') }) : '';
+}
+function stepEntryField(entryId, k, dir) {
+  const { step, max = Infinity } = FIELDS[k];
+  updateEntry(UI.date, entryId, e => {
+    const cur = e[k];
+    e[k] = cur === null || cur === undefined ? (dir > 0 ? step : null) : Math.min(max, Math.max(0, Math.round((cur + dir * step) * 100) / 100)) || null;
+  });
+}
+function setEntryField(entryId, k, v) {
+  const n = numOrNull(v);
+  updateEntry(UI.date, entryId, e => { e[k] = n === null ? null : Math.min(FIELDS[k].max || Infinity, Math.max(0, n)); });
+}
+function setEntryTrack(entryId, trackId) {
+  updateEntry(UI.date, entryId, e => { e.track = e.track === trackId ? null : trackId; });
+}
+function finishCardio(entryId) {
+  if (document.activeElement && document.activeElement.onchange) document.activeElement.onchange();
+  updateEntry(UI.date, entryId, e => { delete e.pending; });
+  toast(t('exerciseDone'));
 }
 
 // Retirer l'exercice en cours (confirmation si des séries sont déjà faites), avec « Annuler »
@@ -423,14 +494,21 @@ function hiddenSection(list) {
   </div>`;
 }
 
+// Deux lignes : nom (+ nom anglais), étiquettes objectif / à ménager, dernière fois
 function pickItem(ex) {
   const last = historyOf(ex.id)[0];
-  const sub = last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : KINDS[ex.kind].label;
+  const sub = last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : t('neverDone');
   const fav = isFav(ex.id);
-  const musc = musclesLine(ex);
+  const [main, sec] = musclesOf(ex);
+  const up = main.filter(m => muscleGoal(m) === 'up');
+  const downMain = main.filter(m => muscleGoal(m) === 'down');
+  const downSec = sec.filter(m => !main.includes(m) && muscleGoal(m) === 'down');
+  const tags = (up.length ? `<span class="tag ok">${icon('check')}${esc(muscleShort(up[0]))}${up.length > 1 ? ` +${up.length - 1}` : ''}</span>` : '')
+    + (downMain.length ? `<span class="tag warn strong">${esc(muscleShort(downMain[0]))}</span>` : downSec.length ? `<span class="tag warn">${esc(muscleShort(downSec[0]))}</span>` : '');
   return `<div class="pick">
-    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')">${pictoTile(ex)}<span class="pick-text">${goalBadge(ex)}<span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}
-      ${musc ? `<span class="pick-musc">${esc(musc)}</span>` : ''}${goalNote(ex) ? `<span class="pick-warn">${esc(goalNote(ex))}</span>` : ''}<span class="pick-sub">${esc(sub)}</span></span></button>
+    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')">${pictoTile(ex, 'small')}<span class="pick-text">
+      <span class="pick-line"><span class="pick-name">${esc(exLabel(ex))}</span>${tags}</span>${enLine(exEn(ex))}
+      <span class="pick-sub">${esc(sub)}</span></span></button>
     <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? t('favOn') : t('favOff')} : ${esc(exLabel(ex))}">${icon('star')}</button>
     <button class="hide-btn" onclick="toggleHidden('${esc(ex.id)}')" aria-label="${t('hide')} : ${esc(exLabel(ex))}">${icon('eyeoff')}</button>
   </div>`;
@@ -614,33 +692,34 @@ function fieldsFor(exId, kind, entry) {
   return [...new Set([...base, ...extra, ...filled])].filter(k => FIELDS[k]);
 }
 
-function pickExercise(id, exObj) {
-  const ex = exObj || findExercise(id);
+// Exercice prêt à faire, avec les chiffres de la dernière fois (séries, réglages, vitesse, pente…)
+function buildEntry(ex) {
   const last = historyOf(ex.id)[0];
   const le = last && last.entry;
+  const entry = { id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), exId: ex.id, name: ex.name, kind: ex.kind, note: '' };
   if (ex.kind === 'sets') {
-    // On prévoit les séries de la dernière fois (mêmes poids, mêmes répétitions, mêmes réglages) :
-    // il suffit ensuite de toucher « Série faite »
     const base = le ? doneSets(le) : [];
-    const sets = (base.length ? base : [0, 1, 2].map(() => ({ reps: 10, weight: null })))
+    entry.sets = (base.length ? base : [0, 1, 2].map(() => ({ reps: 10, weight: null })))
       .map(s => ({ reps: s.reps ?? null, weight: s.weight ?? null, done: false }));
-    const s = cloneSession(UI.date);
-    const entry = { id: 'e' + Date.now().toString(36), exId: ex.id, name: ex.name, kind: 'sets', note: '', sets };
     if (le && le.setup) entry.setup = JSON.parse(JSON.stringify(le.setup));
-    s.entries.push(entry);
-    saveSession(s);
-    closeSheet();
-    setTimeout(() => $('.now') && $('.now').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
-    // Touché par erreur : « Annuler » le retire et rouvre la liste
-    toast(t('addedEx', { name: exLabel(ex) }), { label: t('undo'), fn: () => { removeEntry(entry.id); openPicker(); } });
-    return;
+  } else {
+    entry.pending = true;
+    const fields = fieldsFor(ex.id, ex.kind, le);
+    for (const k of fields) entry[k] = le && le[k] !== undefined ? le[k] : null;
+    if (!le && fields.includes('duration') && !fields.includes('laps')) entry.duration = ex.kind === 'cardio' ? 20 : 30;
   }
-  // Cardio, cours : toutes les valeurs de la dernière fois (vitesse, inclinaison, poids porté, piste…)
-  const fields = fieldsFor(ex.id, ex.kind, le);
-  draft = { entryId: null, exId: ex.id, name: ex.name, kind: ex.kind, note: '', fields };
-  for (const k of fields) draft[k] = le && le[k] !== undefined ? le[k] : null;
-  if (!le && fields.includes('duration') && !fields.includes('laps')) draft.duration = ex.kind === 'cardio' ? 20 : 30;
-  openTimeEditor(last);
+  return entry;
+}
+function pickExercise(id, exObj) {
+  const ex = exObj || findExercise(id);
+  const entry = buildEntry(ex);
+  const s = cloneSession(UI.date);
+  s.entries.push(entry);
+  saveSession(s);
+  closeSheet();
+  setTimeout(() => $('.now') && $('.now').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  // Touché par erreur : « Annuler » le retire et rouvre la liste
+  toast(t('addedEx', { name: exLabel(ex) }), { label: t('undo'), fn: () => { removeEntry(entry.id); openPicker(); } });
 }
 
 // ===== RÉGLER UNE SÉRIE (grande pile + poids exact) =====
@@ -849,6 +928,7 @@ function openEntry(entryId) {
         ${s.done === false ? `<span class="muted small">${t('planned')}</span>` : `<span class="row-mark">${icon('check')}</span>`}
       </button>`).join('')}</div>
     <button class="btn-outline" onclick="addPlannedSet('${id}');closeSheet()">${icon('plus')}${t('addSet')}</button>
+    <div id="rep-target">${repTargetHtml(e.exId)}</div>
     <div class="setup-box" id="setup-box"></div>
     <label class="field" style="margin-top:16px"><span>${t('note')}</span>
       <textarea class="input" id="entry-note" rows="2" maxlength="300" placeholder="${t('notePh')}">${esc(e.note || '')}</textarea></label>
@@ -1035,6 +1115,7 @@ function addTrack() {
 function saveDraft() {
   if (document.activeElement && document.activeElement.onchange) document.activeElement.onchange();
   const entry = { id: draft.entryId || 'e' + Date.now().toString(36), exId: draft.exId, name: draft.name, kind: draft.kind, note: $('#draft-note').value.trim() };
+  if (draft.pending) entry.pending = true;
   for (const k of draft.fields) entry[k] = draft[k] ?? null;
   const s = cloneSession(UI.date);
   const i = s.entries.findIndex(e => e.id === entry.id);
@@ -1052,19 +1133,23 @@ function renderTrack() {
   const month = sessionsInRange(isoDate(new Date(now.getFullYear(), now.getMonth(), 1)), isoDate());
   const monthName = now.toLocaleDateString(locale(), { month: 'long' });
 
+  const monday = mondayOf(now);
+  const week = sessionsInRange(isoDate(monday), isoDate());
+  // Le bilan de la semaine d'abord ; les semaines en bref ; les exercices sur une page à part
   $('#view').innerHTML = `
     <div class="page-head">
-      <div class="head-row"><span class="eyebrow">${cap(monthName)}</span></div>
-      <h1>${month ? tn('sessionsStacked', month) : t('noSessionMonth')}</h1>
-      <p class="muted small">${t('trackHint', { goal: weeklyGoal() })}</p>
+      <div class="head-row"><span class="eyebrow">${t('weekOfLong', { date: esc(fmtDM(isoDate(monday))) })}</span></div>
+      <h1>${tn('weekSessions', week, { goal: weeklyGoal() })}</h1>
     </div>
-    <section class="card">${weeksHtml()}</section>
     <section class="card">${musclesCardHtml()}</section>
-    <section class="card">${calendarHtml()}</section>
-    <section class="card">
-      <h2 class="card-title">${t('byExercise')}</h2>
-      ${exerciseListHtml()}
-    </section>`;
+    <section class="card"><h2 class="card-title">${t('lastWeeks')}</h2>${weeksHtml()}</section>
+    <button class="btn-line row-btn" onclick="openExerciseList()">${t('byExerciseLong')}${icon('chev')}</button>`;
+}
+function openExerciseList() {
+  openSheet(`
+    <div class="sheet-head"><h3>${t('byExercise')}</h3>
+      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button></div>
+    ${exerciseListHtml()}`);
 }
 
 function weeksHtml() {
@@ -1214,6 +1299,7 @@ function openExercise(exId) {
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     ${story ? `<p class="story">${story}</p>` : ''}
+    ${first.kind === 'sets' ? `<div id="rep-target">${repTargetHtml(exId)}</div>` : ''}
     ${progressionHtml(exId)}
     <p class="label">${metric.title}</p>
     ${pts.length >= 2 ? `<div class="chart" id="ex-chart"></div>` : `<p class="muted small">${t('curveLater')}</p>`}
@@ -1251,6 +1337,7 @@ function openMenu() {
     <div class="menu-list">
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
       <button class="btn-line" onclick="openGoals()">${t('goalsTitle')}${goalsSummary() ? `<span class="btn-sub">${esc(goalsSummary())}</span>` : ''}</button>
+      <button class="btn-line" onclick="openRoutines()">${t('myRoutines')}</button>
       <button class="btn-line" onclick="openMyExercises()">${t('myExercises')}</button>
       <button class="btn-quiet" onclick="logout()">${t('logout')}</button>
     </div>`);
