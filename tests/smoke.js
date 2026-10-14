@@ -138,7 +138,8 @@
     ok(document.querySelectorAll('.mrow').length > 0 && $('.cardio-line'), 'bilan incomplet');
     openMuscle('glutes'); ok($('#sheet .pick'), 'exercices du muscle absents');
     openExerciseList(); ok($('#sheet .ex-list'), 'liste par exercice absente');
-    openExercise('dev-couche'); ok($('#sheet .history'), 'historique absent');
+    // rowing haltère : historique créé plus haut par le test lui-même (indépendant des données déjà présentes)
+    openExercise('row-haltere'); ok($('#sheet .history'), 'historique absent');
     closeSheet(); await wait();
   });
   await step('Mon compte : pseudo, objectifs, exercices créés', async () => {
