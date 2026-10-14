@@ -1231,13 +1231,14 @@ function openExercise(exId) {
 function openMenu() {
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${t('account')}</div><h3>${esc(pseudo() || Data.user.email)}</h3>
-        ${pseudo() ? `<p class="muted small">${esc(Data.user.email)}</p>` : ''}</div>
+      <div class="account-head"><div class="eyebrow">${t('account')}</div>
+        <label class="name-edit"><span class="sr-only">${t('pseudo')}</span>
+          <input class="serif" id="pseudo-input" maxlength="30" autocomplete="nickname" placeholder="${t('pseudoPh')}" value="${esc(pseudo())}"
+            onchange="savePseudo(this.value)" onkeydown="if(event.key==='Enter')this.blur()">${icon('edit')}</label>
+        <p class="muted small">${esc(Data.user.email)}</p></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     ${DEMO ? `<p class="demo-note">${t('demoMenu')}</p>` : ''}
-    <label class="field"><span>${t('pseudo')}</span>
-      <input class="input" id="pseudo-input" maxlength="30" autocomplete="nickname" placeholder="${t('pseudoPh')}" value="${esc(pseudo())}" onchange="savePseudo(this.value)"></label>
     <div class="goal">
       <span>${t('weeklyGoal')}</span>
       <div class="stepper small">

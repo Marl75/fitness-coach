@@ -319,6 +319,16 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .goal-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 3px; padding: 2px 8px 2px 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 800; letter-spacing: 0.02em; }
 .goal-badge svg { width: 11px; height: 11px; }
 
+/* Pseudo : titre de Mon compte, modifiable en place */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.account-head { flex: 1; min-width: 0; }
+.name-edit { display: flex; align-items: center; gap: 8px; margin-top: 2px; border-bottom: 1px dashed var(--steel); }
+.name-edit:focus-within { border-bottom-color: var(--accent); }
+.name-edit input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text); font-size: 30px; line-height: 1.15; padding: 2px 0; }
+.name-edit input::placeholder { color: var(--text-faint); }
+.name-edit svg { width: 18px; height: 18px; color: var(--text-faint); flex-shrink: 0; }
+.account-head .muted { margin-top: 6px; }
+
 /* Pseudo dans l'en-tête */
 .account-btn { display: flex; align-items: center; gap: 2px; max-width: 60vw; }
 .pseudo-top { font-size: 14px; font-weight: 700; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
