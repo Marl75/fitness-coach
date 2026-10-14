@@ -106,7 +106,7 @@ function renderToday() {
       </div>
       <div class="head-row">
         <h1>${isToday ? t('todayTitle') : t('dayTitle', { date: esc(fmtShort(UI.date)) })}</h1>
-        <button class="date-chip" onclick="openDayPicker()" aria-label="${t('otherDayAria')}">${icon('cal')}${t('otherDay')}</button>
+        ${current ? '' : `<button class="date-chip" onclick="openDayPicker()" aria-label="${t('otherDayAria')}">${icon('cal')}${t('otherDay')}</button>`}
       </div>
     </div>`;
 
