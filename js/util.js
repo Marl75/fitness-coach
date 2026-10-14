@@ -58,11 +58,27 @@ function entrySummary(e) {
       return g.weight ? `${reps} · ${fmtNum(g.weight)} kg` : reps;
     }).join(' + ');
   }
-  const parts = [];
-  if (e.duration) parts.push(`${fmtNum(e.duration)} min`);
-  if (e.distance) parts.push(`${fmtNum(e.distance)} km`);
+  const parts = FIELD_ORDER.map(k => fieldText(k, e[k], e)).filter(Boolean);
   return parts.join(' · ') || t('didIt');
 }
+
+// Une valeur de champ, lisible : « 5,5 km/h », « pente 12 % », « 6 kg × 2 », « 10 allers-retours »
+function fieldText(key, v, e = {}) {
+  if (v === null || v === undefined || v === '') return '';
+  if (key === 'track') {
+    const tr = trackById(v);
+    return tr ? tr.name : '';
+  }
+  if (key === 'laps') {
+    const tr = trackById(e.track);
+    const dist = !e.distance && tr && tr.length ? ` (≈ ${fmtNum(Math.round(v * 2 * tr.length / 10) / 100)} km)` : '';
+    return tn('sum_laps', v, { v: fmtNum(v) }) + dist;
+  }
+  if (key === 'floors') return tn('sum_floors', v, { v: fmtNum(v) });
+  return t('sum_' + key, { v: fmtNum(v) });
+}
+const tracks = () => prefs().tracks || [];
+const trackById = id => tracks().find(x => x.id === id);
 
 let toastTimer;
 function toast(msg) {

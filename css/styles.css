@@ -217,6 +217,33 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .stepper.small { height: 48px; grid-template-columns: 44px 44px 44px; }
 .stepper.small span { font-size: 26px; }
 
+/* Nom anglais sous le nom français, réglages de muscu, champs détaillés */
+.en-name { display: block; font-size: 12px; font-weight: 500; color: var(--text-faint); line-height: 1.3; }
+.now .en-name { margin-top: 2px; }
+.sheet-head .en-name { font-size: 13px; margin-top: 4px; }
+.row-setup, .h-setup { font-size: 13px; color: var(--accent); opacity: 0.85; }
+.now-setup { font-size: 13px; color: var(--accent); margin-top: 6px; }
+.sub-label { font-size: 13px; color: var(--text-dim); font-weight: 600; margin: 4px 0 8px; }
+.setup-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--surface-2); }
+.setup-box .chips.wrap { margin-bottom: 12px; }
+.sheet p.muted.hint, .hint { margin: -4px 0 14px; }
+.works { font-size: 14px; color: var(--text-dim); background: var(--bg); border-radius: 14px; padding: 12px 14px; }
+.works b { color: var(--text); font-weight: 700; }
+.chip.dashed { border-style: dashed; color: var(--accent); }
+.add-info-btn { margin: 0 0 18px; }
+.add-info { margin-bottom: 8px; }
+.add-info .chips.wrap { margin-bottom: 12px; }
+.inline-add { display: flex; gap: 8px; align-items: flex-start; }
+.inline-add .input { flex: 1; }
+.track-form { border: 1px solid var(--surface-2); border-radius: 16px; padding: 12px; margin-bottom: 4px; }
+.track-form .btn-accent { width: 100%; }
+.weight-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.weight-row .stepper { flex: 1; min-width: 200px; }
+.step-pick { display: flex; flex-direction: column; gap: 4px; }
+.seg.small button { min-width: 40px; height: 32px; padding: 0 8px; font-size: 13px; }
+.center-link { display: block; margin: 6px auto 0; }
+.history + .btn-outline { margin-top: 12px; }
+
 /* ===== Suivi ===== */
 .card { background: var(--surface); border-radius: 22px; padding: 18px; margin-bottom: 14px; }
 .card-title { font-size: 24px; margin-bottom: 10px; }
@@ -270,6 +297,7 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .history li { padding: 12px 0; border-top: 1px solid var(--surface-2); font-size: 14px; display: flex; flex-direction: column; }
 .history .h-date { font-weight: 700; }
 .history .h-note { color: var(--text-faint); font-style: italic; }
+.history .h-setup { margin-top: 2px; }
 
 /* ===== Panneaux du bas ===== */
 .backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 40; }

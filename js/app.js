@@ -53,14 +53,17 @@ function updateEntry(date, entryId, fn) {
 // Comme sur une machine : les plaques légères en haut, la goupille choisit le poids.
 const STEP = 2.5;
 const plateLabel = v => (v ? fmtNum(v) : t('plateNone'));
+// Plaque où se place la goupille : la plus lourde sans dépasser le poids (12,75 kg → plaque 12,5)
+const pinPlate = (values, w) => values.filter(v => v <= w).pop() ?? values[0];
 function stackHtml(values, pin, action, cls = '') {
+  const at = pinPlate(values, pin);
   return `<div class="stack ${cls}" role="group" aria-label="${t('stackAria')}">${values.map(v => {
-    const state = v === pin ? 'pin' : v < pin ? 'lifted' : '';
-    return `<button type="button" class="plate ${state}" data-v="${v}" onclick="${action}(${v})" aria-pressed="${v === pin}" aria-label="${v ? t('kilos', { w: fmtNum(v) }) : t('plateNoneAria')}">${plateLabel(v)}</button>`;
+    const state = v === at ? 'pin' : v < at ? 'lifted' : '';
+    return `<button type="button" class="plate ${state}" data-v="${v}" onclick="${action}(${v})" aria-pressed="${v === at}" aria-label="${v ? t('kilos', { w: fmtNum(v) }) : t('plateNoneAria')}">${plateLabel(v)}</button>`;
   }).join('')}</div>`;
 }
 function windowAround(w, n = 5) {
-  const start = Math.max(0, w - STEP * Math.floor(n / 2));
+  const start = Math.max(0, Math.floor(w / STEP) * STEP - STEP * Math.floor(n / 2));
   return Array.from({ length: n }, (_, i) => start + i * STEP);
 }
 // Petite pile décorative : plus il y a de plaques levées, plus c'est lourd par rapport à tes habitudes
@@ -162,8 +165,10 @@ function entryRow(e) {
   const pi = pendingIndex(e);
   const sub = pi >= 0 && !doneSets(e).length ? tn('plannedSets', e.sets.length) : entrySummary(e);
   const mark = entryDone(e) && pi < 0 ? `<span class="row-mark">${icon('check')}</span>` : icon('chev');
+  const setup = setupSummary(e.setup);
   return `<button class="row" onclick="openEntry('${esc(e.id)}')">${miniStack(e)}
-    <span class="row-main"><span class="row-name">${esc(entryName(e))}</span><span class="row-sub">${esc(sub)}</span>
+    <span class="row-main"><span class="row-name">${esc(entryName(e))}</span>${enLine(entryEn(e))}<span class="row-sub">${esc(sub)}</span>
+    ${setup ? `<span class="row-setup">${esc(setup)}</span>` : ''}
     ${e.note ? `<span class="row-note">${esc(e.note)}</span>` : ''}</span>${mark}</button>`;
 }
 
@@ -177,7 +182,8 @@ function currentCard(e) {
     ${stackHtml(windowAround(w), w, `pinCurrent.bind(null,'${id}')`, 'compact')}
     <div class="now-main">
       <div class="eyebrow">${t('setOf', { i: i + 1, n: e.sets.length })}</div>
-      <h2 class="now-name">${esc(entryName(e))}</h2>
+      <h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
+      ${setupSummary(e.setup) ? `<p class="now-setup">${esc(setupSummary(e.setup))}</p>` : ''}
       <button class="now-value" onclick="openSet('${id}',${i})" aria-label="${t('changeNumbers')}">
         <span class="serif">${set.reps || '–'}</span><span class="now-unit">× ${w ? fmtNum(w) + ' kg' : t('noWeight')}</span>
       </button>
@@ -186,6 +192,7 @@ function currentCard(e) {
         <button onclick="addPlannedSet('${id}')">${t('addSetShort')}</button>
         <button onclick="finishAll('${id}')">${t('validateAll')}</button>
         <button onclick="stopEntry('${id}')">${t('stopHere')}</button>
+        <button onclick="openEntry('${id}')">${t('setup')} · ${t('comment').toLowerCase()}</button>
       </div>
     </div>
   </section>`;
@@ -323,7 +330,7 @@ function openPicker() {
 
 function hiddenItem(ex) {
   return `<div class="pick hidden-ex">
-    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(exLabel(ex))}</span></button>
+    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}</button>
     <button class="unhide" onclick="toggleHidden('${esc(ex.id)}')">${t('unhide')}</button>
   </div>`;
 }
@@ -342,7 +349,7 @@ function pickItem(ex) {
   const sub = last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : KINDS[ex.kind].label;
   const fav = isFav(ex.id);
   return `<div class="pick">
-    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(exLabel(ex))}</span><span class="pick-sub">${esc(sub)}</span></button>
+    <button class="pick-main" onclick="pickExercise('${esc(ex.id)}')"><span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}<span class="pick-sub">${esc(sub)}</span></button>
     <button class="star${fav ? ' on' : ''}" onclick="toggleFav('${esc(ex.id)}')" aria-pressed="${fav}" aria-label="${fav ? t('favOn') : t('favOff')} : ${esc(exLabel(ex))}">${icon('star')}</button>
     <button class="hide-btn" onclick="toggleHidden('${esc(ex.id)}')" aria-label="${t('hide')} : ${esc(exLabel(ex))}">${icon('eyeoff')}</button>
   </div>`;
@@ -398,30 +405,63 @@ function renderPickerList() {
 }
 
 // ===== CRÉER UN EXERCICE (avec vérification des doublons) =====
+// pre : valeurs de départ (variante d'un exercice existant)
 let createConfirm = false;
-function openCreate() {
-  const name = UI.search.trim();
+let createState = null;
+function openCreate(pre = {}) {
+  const name = pre.name ?? UI.search.trim();
   createConfirm = false;
+  const kind = pre.kind || 'sets';
+  createState = { kind, fields: pre.fields ? [...pre.fields] : [...(DEFAULT_FIELDS[kind] || [])], muscles: [...(pre.muscles || [])],
+    fieldsTouched: !!pre.fields, variant: !!pre.base };
   const groupFor = ['upper', 'lower', 'core', 'cardio', 'class'];
   openSheet(`
-    <div class="sheet-head"><h3>${t('newExercise')}</h3>
+    <div class="sheet-head"><h3>${pre.base ? t('variant') : t('newExercise')}</h3>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button></div>
+    ${pre.base ? `<p class="muted small">${esc(t('variantOf', { name: pre.base }))}</p>` : ''}
     <label class="field"><span>${t('name')}</span>
       <input class="input" id="new-name" value="${esc(name)}" maxlength="60" placeholder="${t('namePh')}" oninput="createConfirm=false;renderSimilar()" autocomplete="off"></label>
     <div id="similar"></div>
     <p class="field"><span>${t('whatToLog')}</span></p>
-    <div class="kinds" role="radiogroup">${Object.entries(KINDS).map(([k, v], i) => `
-      <button class="kind${i === 0 ? ' active' : ''}" data-kind="${k}" role="radio" aria-checked="${i === 0}" onclick="selectKind(this)">
+    <div class="kinds" role="radiogroup">${Object.entries(KINDS).map(([k, v]) => `
+      <button class="kind${k === kind ? ' active' : ''}" data-kind="${k}" role="radio" aria-checked="${k === kind}" onclick="selectKind(this)">
         <span class="kind-label">${v.label}</span><span class="kind-hint">${v.hint}</span></button>`).join('')}</div>
+    <div id="create-fields"></div>
+    <p class="field"><span>${t('musclesWorked')}</span></p>
+    <div class="chips wrap" id="create-muscles">${MUSCLES.map(m => `<button class="chip${createState.muscles.includes(m) ? ' active' : ''}" aria-pressed="${createState.muscles.includes(m)}" onclick="toggleCreateMuscle(this,'${m}')">${t('m_' + m)}</button>`).join('')}</div>
     <p class="field"><span>${t('categoryHint')}</span></p>
     <div class="chips wrap" id="new-group" role="radiogroup">${GROUPS.filter(g => groupFor.includes(g.id)).map(g =>
-      `<button class="chip" data-g="${g.id}" role="radio" aria-checked="false" onclick="selectGroup(this)">${g.label}</button>`).join('')}</div>
+      `<button class="chip${g.id === pre.group ? ' active' : ''}" data-g="${g.id}" role="radio" aria-checked="${g.id === pre.group}" onclick="selectGroup(this)">${g.label}</button>`).join('')}</div>
     <button class="btn-accent big" id="create-btn" onclick="createExercise()">${t('createStart')}</button>`);
+  renderCreateFields();
   renderSimilar();
   if (!name) $('#new-name').focus();
 }
 function selectKind(btn) {
   document.querySelectorAll('.kind').forEach(b => { b.classList.toggle('active', b === btn); b.setAttribute('aria-checked', b === btn); });
+  createState.kind = btn.dataset.kind;
+  if (!createState.fieldsTouched) createState.fields = [...(DEFAULT_FIELDS[createState.kind] || [])];
+  renderCreateFields();
+}
+// Cardio et cours : on choisit les infos à noter (muscu : séries, répétitions, poids)
+function renderCreateFields() {
+  const box = $('#create-fields');
+  if (!box) return;
+  box.innerHTML = createState.kind === 'sets' ? '' : `
+    <p class="field"><span>${t('fieldsToLog')}</span></p>
+    <div class="chips wrap">${FIELD_ORDER.map(k => `<button class="chip${createState.fields.includes(k) ? ' active' : ''}" aria-pressed="${createState.fields.includes(k)}" onclick="toggleCreateField('${k}')">${t('fs_' + k)}</button>`).join('')}</div>`;
+}
+function toggleCreateField(k) {
+  const f = createState.fields;
+  createState.fields = f.includes(k) ? f.filter(x => x !== k) : FIELD_ORDER.filter(x => x === k || f.includes(x));
+  createState.fieldsTouched = true;
+  renderCreateFields();
+}
+function toggleCreateMuscle(btn, m) {
+  const on = !createState.muscles.includes(m);
+  createState.muscles = on ? [...createState.muscles, m] : createState.muscles.filter(x => x !== m);
+  btn.classList.toggle('active', on);
+  btn.setAttribute('aria-pressed', on);
 }
 function selectGroup(btn) {
   const on = !btn.classList.contains('active');
@@ -430,7 +470,8 @@ function selectGroup(btn) {
 function renderSimilar() {
   const box = $('#similar');
   if (!box) return;
-  const sim = similarExercises($('#new-name').value);
+  // Une variante ressemble forcément à l'exercice de départ : pas d'alerte
+  const sim = createState && createState.variant ? [] : similarExercises($('#new-name').value);
   const btn = $('#create-btn');
   if (btn) btn.textContent = createConfirm ? t('createAnyway') : t('createStart');
   box.innerHTML = !sim.length ? '' : `
@@ -451,18 +492,38 @@ function createExercise() {
     pickExercise(sim[0].e.id);
     return;
   }
-  if (sim.length && !createConfirm) {
+  if (sim.length && !createConfirm && !createState.variant) {
     createConfirm = true;
     renderSimilar();
     $('#similar').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
   const g = document.querySelector('#new-group .chip.active');
-  const ex = { id: 'c-' + Date.now().toString(36), name, kind: $('.kind.active').dataset.kind, createdAt: Date.now() };
+  const { kind, fields, muscles } = createState;
+  const ex = { id: 'c-' + Date.now().toString(36), name, kind, createdAt: Date.now() };
+  if (kind !== 'sets') ex.fields = fields.length ? fields : DEFAULT_FIELDS[kind];
+  if (muscles.length) ex.muscles = muscles;
   if (g) ex.group = g.dataset.g;
   saveCustomExercise(ex);
   toast(t('created', { name }));
   pickExercise(ex.id, { ...ex, group: ex.group || 'custom', custom: true });
+}
+// Variante : même type, mêmes infos et mêmes muscles, avec son propre historique
+function openVariant(exId) {
+  const ex = findExercise(exId);
+  if (!ex) return;
+  openCreate({ name: t('variantName', { name: exLabel(ex) }), kind: ex.kind, group: ex.group === 'custom' ? null : ex.group,
+    fields: ex.kind === 'sets' ? null : fieldsFor(exId, ex.kind), muscles: musclesOf(ex)[0], base: exLabel(ex) });
+}
+
+// ===== CHAMPS D'UN EXERCICE =====
+// Ceux de l'exercice (catalogue ou création), plus les infos ajoutées à la main, plus celles déjà remplies.
+function fieldsFor(exId, kind, entry) {
+  const ex = findExercise(exId);
+  const base = (ex && ex.fields) || EX_FIELDS[exId] || DEFAULT_FIELDS[kind] || ['duration'];
+  const extra = (prefs().extraFields || {})[exId] || [];
+  const filled = entry ? FIELD_ORDER.filter(k => entry[k] !== null && entry[k] !== undefined && entry[k] !== '') : [];
+  return [...new Set([...base, ...extra, ...filled])].filter(k => FIELDS[k]);
 }
 
 function pickExercise(id, exObj) {
@@ -470,23 +531,35 @@ function pickExercise(id, exObj) {
   const last = historyOf(ex.id)[0];
   const le = last && last.entry;
   if (ex.kind === 'sets') {
-    // On prévoit les séries de la dernière fois : il suffit ensuite de toucher « Série faite »
+    // On prévoit les séries de la dernière fois (mêmes poids, mêmes répétitions, mêmes réglages) :
+    // il suffit ensuite de toucher « Série faite »
     const base = le ? doneSets(le) : [];
     const sets = (base.length ? base : [0, 1, 2].map(() => ({ reps: 10, weight: null })))
       .map(s => ({ reps: s.reps ?? null, weight: s.weight ?? null, done: false }));
     const s = cloneSession(UI.date);
-    s.entries.push({ id: 'e' + Date.now().toString(36), exId: ex.id, name: ex.name, kind: 'sets', note: '', sets });
+    const entry = { id: 'e' + Date.now().toString(36), exId: ex.id, name: ex.name, kind: 'sets', note: '', sets };
+    if (le && le.setup) entry.setup = JSON.parse(JSON.stringify(le.setup));
+    s.entries.push(entry);
     saveSession(s);
     closeSheet();
     setTimeout(() => $('.now') && $('.now').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
     return;
   }
-  draft = { entryId: null, exId: ex.id, name: ex.name, kind: ex.kind, note: '',
-    duration: le && le.duration ? le.duration : (ex.kind === 'cardio' ? 20 : 30), distance: le && le.distance ? le.distance : null };
+  // Cardio, cours : toutes les valeurs de la dernière fois (vitesse, inclinaison, poids porté, piste…)
+  const fields = fieldsFor(ex.id, ex.kind, le);
+  draft = { entryId: null, exId: ex.id, name: ex.name, kind: ex.kind, note: '', fields };
+  for (const k of fields) draft[k] = le && le[k] !== undefined ? le[k] : null;
+  if (!le && fields.includes('duration') && !fields.includes('laps')) draft.duration = ex.kind === 'cardio' ? 20 : 30;
   openTimeEditor(last);
 }
 
-// ===== RÉGLER UNE SÉRIE (grande pile) =====
+// ===== RÉGLER UNE SÉRIE (grande pile + poids exact) =====
+const WEIGHT_STEPS = [0.25, 0.5, 1, 2.5];
+function weightStep() {
+  let v = null;
+  try { v = parseFloat(localStorage.getItem('fitcoach-wstep')); } catch (e) {}
+  return WEIGHT_STEPS.includes(v) ? v : 0.5;
+}
 function openSet(entryId, idx) {
   const e = (sessionOf(UI.date).entries || []).find(x => x.id === entryId);
   if (!e) return;
@@ -496,7 +569,7 @@ function openSet(entryId, idx) {
   const values = Array.from({ length: 81 }, (_, i) => i * STEP); // 0 à 200 kg
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${t('setOf', { i: idx + 1, n: e.sets.length })}</div><h3>${esc(entryName(e))}</h3></div>
+      <div><div class="eyebrow">${t('setOf', { i: idx + 1, n: e.sets.length })}</div><h3>${esc(entryName(e))}</h3>${enLine(entryEn(e))}</div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <div class="set-editor">
@@ -509,7 +582,17 @@ function openSet(entryId, idx) {
         <button class="round-btn" onclick="stepReps(1)" aria-label="${t('repPlus')}">${icon('plus')}</button>
         <input class="reps-input serif" id="reps" inputmode="numeric" value="${setDraft.reps ?? ''}" placeholder="0" onchange="setDraft.reps=numOrNull(this.value)" onfocus="this.select()" aria-label="${t('reps')}">
         <button class="round-btn" onclick="stepReps(-1)" aria-label="${t('repMinus')}">${icon('minus')}</button>
-        <p class="weight-read" id="weight-read">${setDraft.weight ? fmtNum(setDraft.weight) + ' kg' : t('noWeight')}</p>
+      </div>
+    </div>
+    <div class="solo">
+      <span>${t('weightExact')} (kg)</span>
+      <div class="weight-row">
+        <div class="stepper">
+          <button type="button" onclick="stepWeight(-1)" aria-label="${t('minus')}">${icon('minus')}</button>
+          <input class="serif" id="weight-input" inputmode="decimal" value="${setDraft.weight ? fmtNum(setDraft.weight) : ''}" placeholder="0" onchange="setWeight(this.value)" onfocus="this.select()" aria-label="${t('weightAria')}">
+          <button type="button" onclick="stepWeight(1)" aria-label="${t('plus')}">${icon('plus')}</button>
+        </div>
+        <div class="step-pick"><span class="muted small">${t('stepLabel')}</span><div class="seg small" id="wstep">${weightStepsHtml()}</div></div>
       </div>
     </div>
     <p class="muted small">${last ? t('lastTime', { when: relDay(last.date), what: esc(entrySummary(last.entry)) }) : t('firstTimeEx')}</p>
@@ -518,22 +601,41 @@ function openSet(entryId, idx) {
   const pin = $('#set-stack .plate.pin');
   if (pin) pin.scrollIntoView({ block: 'center' });
 }
-function pinSet(v) {
-  setDraft.weight = v;
+const weightStepsHtml = () => WEIGHT_STEPS.map(v =>
+  `<button class="${v === weightStep() ? 'active' : ''}" aria-pressed="${v === weightStep()}" onclick="setWeightStep(${v})">${fmtNum(v)}</button>`).join('');
+function setWeightStep(v) {
+  try { localStorage.setItem('fitcoach-wstep', v); } catch (e) {}
+  $('#wstep').innerHTML = weightStepsHtml();
+}
+// Le poids exact (au clavier ou avec + / −) et la pile restent d'accord
+function showWeight(scroll) {
+  const values = [...document.querySelectorAll('#set-stack .plate')].map(p => +p.dataset.v);
+  const at = pinPlate(values, setDraft.weight);
   document.querySelectorAll('#set-stack .plate').forEach(p => {
     const pv = +p.dataset.v;
-    p.classList.toggle('pin', pv === v);
-    p.classList.toggle('lifted', pv < v);
-    p.setAttribute('aria-pressed', pv === v);
+    p.classList.toggle('pin', pv === at);
+    p.classList.toggle('lifted', pv < at);
+    p.setAttribute('aria-pressed', pv === at);
   });
-  $('#weight-read').textContent = v ? fmtNum(v) + ' kg' : t('noWeight');
+  const input = $('#weight-input');
+  if (input) input.value = setDraft.weight ? fmtNum(setDraft.weight) : '';
+  const pin = $('#set-stack .plate.pin');
+  if (scroll && pin) pin.scrollIntoView({ block: 'nearest' });
 }
+function pinSet(v) { setDraft.weight = v; showWeight(false); }
+function stepWeight(d) {
+  const step = weightStep();
+  setDraft.weight = Math.max(0, Math.round((setDraft.weight + d * step) * 100) / 100);
+  showWeight(true);
+}
+function setWeight(v) { setDraft.weight = Math.max(0, numOrNull(v) || 0); showWeight(true); }
 function stepReps(d) {
   setDraft.reps = Math.max(0, (setDraft.reps || 0) + d) || null;
   $('#reps').value = setDraft.reps ?? '';
 }
 function saveSet() {
   setDraft.reps = numOrNull($('#reps').value);
+  setDraft.weight = Math.max(0, numOrNull($('#weight-input').value) || 0);
   const { entryId, idx, reps, weight, wasDone } = setDraft;
   updateEntry(UI.date, entryId, e => {
     const old = e.sets[idx];
@@ -555,19 +657,96 @@ function deleteSet() {
   toast(t('setDeleted'));
 }
 
+// ===== RÉGLAGES DE MUSCU =====
+const moveLabel = m => (m && m.startsWith('mv_') ? t(m) : m || '');
+const customMoves = exId => (prefs().moves || {})[exId] || [];
+// « Machine · Sur le dos · banc incliné 30° · Bras tendus · cible : pectoraux »
+function setupSummary(st) {
+  if (!st) return '';
+  const parts = [];
+  if (st.machine) parts.push(t('machine'));
+  if (st.dumbbells) parts.push(t('dumbbells'));
+  if (st.position) parts.push(t('pos_' + st.position));
+  if (st.bench) parts.push(t('benchSum', { b: t('bench_' + st.bench).toLowerCase() }) + (st.bench !== 'flat' && st.angle ? ` ${fmtNum(st.angle)}°` : ''));
+  if (st.move) parts.push(moveLabel(st.move));
+  if (st.target && st.target.length) parts.push(t('targetSum', { m: st.target.map(m => t('m_' + m).toLowerCase()).join(', ') }));
+  return parts.join(' · ');
+}
+let setupDraft = null;
+function renderSetup() {
+  const box = $('#setup-box');
+  if (!box) return;
+  const st = setupDraft.setup;
+  const chip = (on, action, label) => `<button class="chip${on ? ' active' : ''}" aria-pressed="${!!on}" onclick="${action}">${label}</button>`;
+  const ex = findExercise(setupDraft.exId);
+  const [p, sec] = musclesOf(ex);
+  const moves = [...MOVES, ...customMoves(setupDraft.exId)];
+  if (st.move && !moves.includes(st.move)) moves.push(st.move);
+  box.innerHTML = `
+    <p class="label">${t('setup')}</p>
+    <div class="chips wrap">
+      ${chip(st.machine, "toggleSetup('machine')", t('machine'))}
+      ${chip(st.dumbbells, "toggleSetup('dumbbells')", t('dumbbells'))}
+    </div>
+    <p class="sub-label">${t('position')}</p>
+    <div class="chips wrap">${POSITIONS.map(v => chip(st.position === v, `pickSetup('position','${v}')`, t('pos_' + v))).join('')}</div>
+    <p class="sub-label">${t('bench')}</p>
+    <div class="chips wrap">${BENCHES.map(v => chip(st.bench === v, `pickSetup('bench','${v}')`, t('bench_' + v))).join('')}</div>
+    ${st.bench === 'incline' || st.bench === 'decline' ? `<div class="solo"><span>${t('benchAngle')}</span>${stepper(st.angle, 'stepAngle', 'setAngle', '—', t('benchAngle'))}</div>` : ''}
+    <p class="muted small hint">${t('benchHint')}</p>
+    <p class="sub-label">${t('move')}</p>
+    <div class="chips wrap">${moves.map((v, i) => chip(st.move === v, `pickMove(${i})`, esc(moveLabel(v)))).join('')}
+      ${setupDraft.addingMove ? '' : `<button class="chip dashed" onclick="setupDraft.addingMove=true;renderSetup();$('#move-new').focus()">${icon('plus')}${t('addMove')}</button>`}</div>
+    ${setupDraft.addingMove ? `<div class="inline-add"><input class="input" id="move-new" maxlength="80" placeholder="${t('movePh')}" onkeydown="if(event.key==='Enter')addMove()">
+      <button class="btn-accent" onclick="addMove()">${t('moveAdd')}</button></div><p class="muted small hint">${t('moveAddHint')}</p>` : ''}
+    <p class="sub-label">${t('target')}</p>
+    <div class="chips wrap">${MUSCLES.map(m => chip((st.target || []).includes(m), `toggleTarget('${m}')`, t('m_' + m))).join('')}</div>
+    <p class="works">${p.length ? t('worksMost', { p: `<b>${p.map(m => t('m_' + m)).join(', ')}</b>` }) + (sec.length ? ' ' + t('worksAlso', { s: sec.map(m => t('m_' + m)).join(', ') }) : '') : t('worksUnknown')}</p>`;
+  setupDraft.moves = moves;
+}
+function toggleSetup(k) { setupDraft.setup[k] = !setupDraft.setup[k]; renderSetup(); }
+function pickSetup(k, v) { setupDraft.setup[k] = setupDraft.setup[k] === v ? null : v; renderSetup(); }
+function pickMove(i) { const v = setupDraft.moves[i]; setupDraft.setup.move = setupDraft.setup.move === v ? null : v; renderSetup(); }
+function toggleTarget(m) {
+  const tg = setupDraft.setup.target || [];
+  setupDraft.setup.target = tg.includes(m) ? tg.filter(x => x !== m) : [...tg, m];
+  renderSetup();
+}
+function stepAngle(d) { setupDraft.setup.angle = Math.min(90, Math.max(0, (setupDraft.setup.angle || 0) + d * 5)) || null; renderSetup(); }
+function setAngle(v) { setupDraft.setup.angle = numOrNull(v); }
+function addMove() {
+  const v = $('#move-new').value.trim().replace(/\s+/g, ' ');
+  if (!v) return;
+  const all = prefs().moves || {};
+  const list = customMoves(setupDraft.exId);
+  if (!list.includes(v)) savePrefs({ moves: { ...all, [setupDraft.exId]: [...list, v] } });
+  setupDraft.setup.move = v;
+  setupDraft.addingMove = false;
+  renderSetup();
+}
+// Réglages vides : on n'enregistre rien
+function cleanSetup(st) {
+  const out = {};
+  for (const [k, v] of Object.entries(st || {})) if (v && !(Array.isArray(v) && !v.length)) out[k] = v;
+  if (!out.bench || out.bench === 'flat') delete out.angle;
+  return Object.keys(out).length ? out : null;
+}
+
 // ===== DÉTAIL D'UN EXERCICE DE LA SÉANCE =====
 function openEntry(entryId) {
   const e = (sessionOf(UI.date).entries || []).find(x => x.id === entryId);
   if (!e) return;
   if (e.kind !== 'sets') {
-    draft = JSON.parse(JSON.stringify({ duration: 30, distance: null, ...e, entryId: e.id }));
+    draft = JSON.parse(JSON.stringify({ ...e, entryId: e.id }));
+    draft.fields = fieldsFor(e.exId, e.kind, e);
     openTimeEditor(historyOf(e.exId).find(h => h.date < UI.date));
     return;
   }
   const id = esc(e.id);
+  setupDraft = { exId: e.exId, setup: JSON.parse(JSON.stringify(e.setup || {})) };
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${esc(entrySummary(e))}</div><h3>${esc(entryName(e))}</h3></div>
+      <div><div class="eyebrow">${esc(entrySummary(e))}</div><h3>${esc(entryName(e))}</h3>${enLine(entryEn(e))}</div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <div class="set-list">${e.sets.map((s, i) => `
@@ -577,14 +756,19 @@ function openEntry(entryId) {
         ${s.done === false ? `<span class="muted small">${t('planned')}</span>` : `<span class="row-mark">${icon('check')}</span>`}
       </button>`).join('')}</div>
     <button class="btn-outline" onclick="addPlannedSet('${id}');closeSheet()">${icon('plus')}${t('addSet')}</button>
+    <div class="setup-box" id="setup-box"></div>
     <label class="field" style="margin-top:16px"><span>${t('note')}</span>
       <textarea class="input" id="entry-note" rows="2" maxlength="300" placeholder="${t('notePh')}">${esc(e.note || '')}</textarea></label>
-    <button class="btn-accent big" onclick="saveEntryNote('${id}')">${t('save')}</button>
+    <button class="btn-accent big" onclick="saveEntryDetails('${id}')">${t('save')}</button>
+    <button class="link center-link" onclick="openVariant('${esc(e.exId)}')">${t('variant')}</button>
     <button class="link-danger" onclick="deleteEntry('${id}')">${t('deleteExercise')}</button>`);
+  renderSetup();
 }
-function saveEntryNote(entryId) {
+function saveEntryDetails(entryId) {
   const note = $('#entry-note').value.trim();
-  updateEntry(UI.date, entryId, e => { e.note = note; });
+  if (document.activeElement && document.activeElement.onchange) document.activeElement.onchange();
+  const setup = cleanSetup(setupDraft.setup);
+  updateEntry(UI.date, entryId, e => { e.note = note; if (setup) e.setup = setup; else delete e.setup; });
   closeSheet();
   toast(t('saved'));
 }
@@ -599,7 +783,7 @@ function deleteEntry(entryId) {
   toast(t('deleted'));
 }
 
-// ===== CARDIO & COURS : DURÉE (ET DISTANCE) =====
+// ===== CARDIO & COURS : LES CHAMPS DE L'EXERCICE =====
 const stepper = (value, onStep, onSet, placeholder, label) => `
   <div class="stepper">
     <button type="button" onclick="${onStep}(-1)" aria-label="${t('minus')}">${icon('minus')}</button>
@@ -609,36 +793,94 @@ const stepper = (value, onStep, onSet, placeholder, label) => `
 
 function openTimeEditor(last) {
   const isNew = !draft.entryId;
+  UI.addInfo = false;
+  UI.newTrack = false;
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${KINDS[draft.kind].label}</div><h3>${esc(entryName(draft))}</h3></div>
+      <div><div class="eyebrow">${KINDS[draft.kind].label}</div><h3>${esc(entryName(draft))}</h3>${enLine(entryEn(draft))}</div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <div id="editor-body"></div>
     <p class="muted small">${last ? t('lastTime', { when: relDay(last.date), what: esc(entrySummary(last.entry)) }) : t('firstTime')}</p>
-    <textarea class="input" id="draft-note" rows="1" maxlength="300" placeholder="${t('noteOptional')}">${esc(draft.note || '')}</textarea>
+    <label class="field"><span>${t('comment')}</span>
+      <textarea class="input" id="draft-note" rows="2" maxlength="300" placeholder="${t('notePh')}">${esc(draft.note || '')}</textarea></label>
     <button class="btn-accent big" onclick="saveDraft()">${isNew ? t('done') : t('save')}</button>
+    <button class="link center-link" onclick="openVariant('${esc(draft.exId)}')">${t('variant')}</button>
     ${isNew ? '' : `<button class="link-danger" onclick="deleteEntry('${esc(draft.entryId)}')">${t('deleteExercise')}</button>`}`);
   renderEditorBody();
+}
+function fieldHtml(k) {
+  if (k === 'track') return trackFieldHtml();
+  const v = draft[k];
+  let hint = '';
+  if (k === 'carry' && v) hint = t('carryTotal', { v: fmtNum(v * 2) });
+  if (k === 'rpe') hint = t('rpeHint');
+  return `<div class="solo"><span>${t('fld_' + k)}</span>${stepper(v, `stepField.bind(null,'${k}')`, `setField.bind(null,'${k}')`, '—', t('fs_' + k))}
+    ${hint ? `<p class="muted small hint">${hint}</p>` : ''}</div>`;
 }
 function renderEditorBody() {
   const box = $('#editor-body');
   if (!box) return;
-  box.innerHTML = `
-    <div class="solo"><span>${t('durationMin')}</span>${stepper(draft.duration, "stepField.bind(null,'duration',5)", "setField.bind(null,'duration')", '0', t('durationAria'))}</div>
-    ${draft.kind === 'cardio' ? `<div class="solo"><span>${t('distanceKm')}</span>${stepper(draft.distance, "stepField.bind(null,'distance',0.5)", "setField.bind(null,'distance')", '—', t('distanceAria'))}</div>` : ''}`;
+  const more = FIELD_ORDER.filter(k => !draft.fields.includes(k));
+  box.innerHTML = draft.fields.map(fieldHtml).join('') + (!more.length ? '' : UI.addInfo ? `
+    <div class="add-info">
+      <p class="sub-label">${t('addInfo')}</p>
+      <div class="chips wrap">${more.map(k => `<button class="chip dashed" onclick="addField('${k}')">${icon('plus')}${t('fs_' + k)}</button>`).join('')}</div>
+      <p class="muted small hint">${t('addInfoHint')}</p>
+    </div>` : `<button class="chip dashed add-info-btn" onclick="UI.addInfo=true;renderEditorBody()">${icon('plus')}${t('addInfo')}</button>`);
 }
-function stepField(field, step, dir) {
-  const cur = draft[field];
-  draft[field] = cur === null || cur === undefined ? (dir > 0 ? step : null) : Math.max(0, cur + dir * step) || null;
+// Ajoute une info à l'exercice ; elle reste proposée les fois suivantes
+function addField(k) {
+  draft.fields = [...draft.fields, k];
+  const all = prefs().extraFields || {};
+  const mine = all[draft.exId] || [];
+  if (!mine.includes(k)) savePrefs({ extraFields: { ...all, [draft.exId]: [...mine, k] } });
+  UI.addInfo = false;
   renderEditorBody();
 }
-function setField(field, v) { draft[field] = numOrNull(v); }
+function stepField(field, dir) {
+  const { step, max = Infinity } = FIELDS[field];
+  const cur = draft[field];
+  draft[field] = cur === null || cur === undefined ? (dir > 0 ? step : null) : Math.min(max, Math.max(0, Math.round((cur + dir * step) * 100) / 100)) || null;
+  renderEditorBody();
+}
+function setField(field, v) {
+  const n = numOrNull(v);
+  draft[field] = n === null ? null : Math.min(FIELDS[field].max || Infinity, Math.max(0, n));
+  if (field === 'carry') renderEditorBody();
+}
+
+// Pistes de référence : enregistrées une fois (nom, longueur facultative), puis choisies d'un geste
+function trackFieldHtml() {
+  const list = tracks();
+  return `<div class="solo"><span>${t('fld_track')}</span>
+    <div class="chips wrap">${list.map(tr => `<button class="chip${draft.track === tr.id ? ' active' : ''}" aria-pressed="${draft.track === tr.id}" onclick="pickTrack('${esc(tr.id)}')">${esc(tr.name)}${tr.length ? ` · ${t('trackLen', { v: fmtNum(tr.length) })}` : ''}</button>`).join('')}
+      ${UI.newTrack ? '' : `<button class="chip dashed" onclick="UI.newTrack=true;renderEditorBody();$('#track-name').focus()">${icon('plus')}${t('newTrack')}</button>`}</div>
+    ${!list.length && !UI.newTrack ? `<p class="muted small hint">${t('noTrack')}</p>` : ''}
+    ${UI.newTrack ? `<div class="track-form">
+      <input class="input" id="track-name" maxlength="40" placeholder="${t('trackNamePh')}" aria-label="${t('trackName')}">
+      <label class="field"><span>${t('trackLength')}</span><input class="input" id="track-length" inputmode="decimal" placeholder="—"></label>
+      <p class="muted small hint">${t('trackLengthHint')}</p>
+      <button class="btn-accent" onclick="addTrack()">${t('trackAdd')}</button>
+    </div>` : ''}</div>`;
+}
+function pickTrack(id) { draft.track = draft.track === id ? null : id; renderEditorBody(); }
+function addTrack() {
+  const name = $('#track-name').value.trim().replace(/\s+/g, ' ');
+  if (!name) { $('#track-name').focus(); return; }
+  const tr = { id: 't' + Date.now().toString(36), name };
+  const len = numOrNull($('#track-length').value);
+  if (len) tr.length = len;
+  savePrefs({ tracks: [...tracks(), tr] });
+  draft.track = tr.id;
+  UI.newTrack = false;
+  renderEditorBody();
+}
 
 function saveDraft() {
   if (document.activeElement && document.activeElement.onchange) document.activeElement.onchange();
-  const entry = { id: draft.entryId || 'e' + Date.now().toString(36), exId: draft.exId, name: draft.name, kind: draft.kind, note: $('#draft-note').value.trim(),
-    duration: draft.duration ?? null, distance: draft.kind === 'cardio' ? draft.distance ?? null : null };
+  const entry = { id: draft.entryId || 'e' + Date.now().toString(36), exId: draft.exId, name: draft.name, kind: draft.kind, note: $('#draft-note').value.trim() };
+  for (const k of draft.fields) entry[k] = draft[k] ?? null;
   const s = cloneSession(UI.date);
   const i = s.entries.findIndex(e => e.id === entry.id);
   if (i >= 0) s.entries[i] = entry; else s.entries.push(entry);
@@ -772,6 +1014,7 @@ function metricFor(kind, hist) {
       ? { title: t('maxLoad'), fmt: v => `${fmtNum(v)} kg`, get: e => maxWeight(e) || null }
       : { title: t('totalReps'), fmt: v => t('repsUnit', { v: fmtNum(v) }), get: e => doneSets(e).reduce((t, s) => t + (s.reps || 0), 0) || null };
   }
+  if (hist.some(h => h.entry.laps)) return { title: t('lapsTitle'), fmt: v => fmtNum(v), get: e => e.laps || null };
   return { title: t('durationMin'), fmt: v => `${fmtNum(v)} min`, get: e => e.duration || null };
 }
 
@@ -787,7 +1030,7 @@ function exerciseListHtml() {
     const metric = metricFor(x.kind, historyOf(x.id));
     const v = metric.get(x.entry);
     return `<button class="row flat" onclick="openExercise('${esc(x.id)}')">${miniStack(x.entry)}
-      <span class="row-main"><span class="row-name">${esc(entryName(x.entry))}</span>
+      <span class="row-main"><span class="row-name">${esc(entryName(x.entry))}</span>${enLine(entryEn(x.entry))}
       <span class="row-sub">${tn('times', x.count, { when: relDay(x.last) })}</span></span>
       <span class="row-val">${v ? metric.fmt(v) : ''}</span>${icon('chev')}
     </button>`;
@@ -811,7 +1054,7 @@ function openExercise(exId) {
   }
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${tn('workouts', hist.length)}</div><h3>${esc(entryName(first))}</h3></div>
+      <div><div class="eyebrow">${tn('workouts', hist.length)}</div><h3>${esc(entryName(first))}</h3>${enLine(entryEn(first))}</div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     ${story ? `<p class="story">${story}</p>` : ''}
@@ -819,7 +1062,9 @@ function openExercise(exId) {
     ${pts.length >= 2 ? `<div class="chart" id="ex-chart"></div>` : `<p class="muted small">${t('curveLater')}</p>`}
     <ul class="history">${hist.map(h => `
       <li><span class="h-date">${esc(cap(fmtDay(h.date)))}</span><span>${esc(entrySummary(h.entry))}</span>
-      ${h.entry.note ? `<span class="h-note">${esc(h.entry.note)}</span>` : ''}</li>`).join('')}</ul>`);
+      ${setupSummary(h.entry.setup) ? `<span class="h-setup">${esc(setupSummary(h.entry.setup))}</span>` : ''}
+      ${h.entry.note ? `<span class="h-note">${esc(h.entry.note)}</span>` : ''}</li>`).join('')}</ul>
+    ${findExercise(exId) ? `<button class="btn-outline" onclick="openVariant('${esc(exId)}')">${icon('plus')}${t('variant')}</button>` : ''}`);
   if (pts.length >= 2) lineChart($('#ex-chart'), pts);
 }
 
