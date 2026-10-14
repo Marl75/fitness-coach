@@ -1451,3 +1451,8 @@ document.addEventListener('visibilitychange', () => {
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+// Test de non-régression : ?demo&smoke (mode démo uniquement, voir tests/smoke.js)
+if (DEMO && new URLSearchParams(location.search).has('smoke')) {
+  setTimeout(() => { const s = document.createElement('script'); s.src = 'tests/smoke.js?' + Date.now(); document.body.appendChild(s); }, 600);
+}
