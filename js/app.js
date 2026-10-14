@@ -1251,7 +1251,7 @@ function openMenu() {
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
       <button class="btn-line" onclick="openGoals()">${t('goalsTitle')}${goalsSummary() ? `<span class="btn-sub">${esc(goalsSummary())}</span>` : ''}</button>
       <button class="btn-line" onclick="openMyExercises()">${t('myExercises')}</button>
-      <button class="btn-line" onclick="logout()">${t('logout')}</button>
+      <button class="btn-quiet" onclick="logout()">${t('logout')}</button>
     </div>`);
 }
 // Pseudo affiché à la place de l'e-mail (la connexion reste par e-mail)
