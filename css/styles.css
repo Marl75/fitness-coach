@@ -317,6 +317,11 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .goal-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 3px; padding: 2px 8px 2px 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 800; letter-spacing: 0.02em; }
 .goal-badge svg { width: 11px; height: 11px; }
 
+/* Pseudo dans l'en-tête */
+.account-btn { display: flex; align-items: center; gap: 2px; max-width: 60vw; }
+.pseudo-top { font-size: 14px; font-weight: 700; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pseudo-top:empty { display: none; }
+
 /* Bilan par muscle */
 .add-btn { width: 44px; height: 44px; margin-right: 8px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex-shrink: 0; }
 .add-btn svg { width: 20px; height: 20px; }

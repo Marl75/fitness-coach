@@ -75,6 +75,7 @@ function render() {
   if (!Data.user) return;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === UI.tab));
   $('#sync').classList.toggle('hidden', !(Data.pending || !navigator.onLine) || DEMO);
+  $('#pseudo-top').textContent = pseudo();
   if (UI.tab === 'today') renderToday(); else renderTrack();
 }
 onDataChange = () => { autoAttachOld(); render(); if (sheetRefresh) sheetRefresh(); };
@@ -1230,10 +1231,13 @@ function openExercise(exId) {
 function openMenu() {
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${t('account')}</div><h3>${esc(Data.user.email)}</h3></div>
+      <div><div class="eyebrow">${t('account')}</div><h3>${esc(pseudo() || Data.user.email)}</h3>
+        ${pseudo() ? `<p class="muted small">${esc(Data.user.email)}</p>` : ''}</div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     ${DEMO ? `<p class="demo-note">${t('demoMenu')}</p>` : ''}
+    <label class="field"><span>${t('pseudo')}</span>
+      <input class="input" id="pseudo-input" maxlength="30" autocomplete="nickname" placeholder="${t('pseudoPh')}" value="${esc(pseudo())}" onchange="savePseudo(this.value)"></label>
     <div class="goal">
       <span>${t('weeklyGoal')}</span>
       <div class="stepper small">
@@ -1249,6 +1253,15 @@ function openMenu() {
       <button class="btn-line" onclick="openGoals()">${t('goalsTitle')}${goalsSummary() ? `<span class="btn-sub">${esc(goalsSummary())}</span>` : ''}</button>
       <button class="btn-line" onclick="logout()">${t('logout')}</button>
     </div>`);
+}
+// Pseudo affiché à la place de l'e-mail (la connexion reste par e-mail)
+const pseudo = () => (prefs().pseudo || '').trim();
+function savePseudo(v) {
+  const p = v.trim().replace(/\s+/g, ' ');
+  if (p === pseudo()) return;
+  savePrefs({ pseudo: p || undefined });
+  toast(p ? t('pseudoSaved', { p }) : t('pseudoRemoved'));
+  if (!$('#sheet').classList.contains('hidden')) openMenu();
 }
 function changeGoal(d) {
   const g = Math.min(7, Math.max(1, weeklyGoal() + d));
