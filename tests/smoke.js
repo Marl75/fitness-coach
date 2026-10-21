@@ -224,6 +224,16 @@
     if (before) { const { id, ...doc } = before; Backend.put('sessions', d, doc); } else Backend.del('sessions', d);
     goToDay(isoDate()); await wait();
   });
+  await step('Inscription : 8 caractères minimum, pas d’indication à la connexion', async () => {
+    switchAuth('register');
+    ok($('#auth-password').placeholder === t('passwordPh'), 'consigne absente à l’inscription');
+    $('#auth-email').value = 'nouveau@exemple.test'; $('#auth-password').value = 'abc1234';
+    await submitAuth({ preventDefault() {} });
+    ok(!$('#auth-msg').classList.contains('hidden') && $('#auth-msg').textContent === t('auth/weak-password'), 'mot de passe de 7 caractères accepté');
+    switchAuth('login');
+    ok($('#auth-password').placeholder === t('passwordPhLogin'), 'consigne des 8 caractères affichée à la connexion');
+    $('#auth-password').value = ''; $('#auth-email').value = '';
+  });
   await step('Démo : bandeau, compte, quitter', async () => {
     ok(window.BETA || !$('#demo-bar').classList.contains('hidden'), 'bandeau démo absent');
     openMenu(); ok($('#sheet').textContent.includes(t('leaveDemo')) && $('#sheet').textContent.includes(t('demoAccount')), 'compte de démo mal affiché');

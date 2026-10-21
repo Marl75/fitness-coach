@@ -94,12 +94,15 @@ function logout() {
 
 // ===== CONNEXION =====
 let authMode = 'login';
+const MIN_PASSWORD = 8;
 function switchAuth(mode) {
   authMode = mode;
   $('#tab-login').classList.toggle('active', mode === 'login');
   $('#tab-register').classList.toggle('active', mode === 'register');
   $('#auth-submit').textContent = mode === 'login' ? t('login') : t('createAccount');
   $('#auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+  // Le minimum ne concerne que les nouveaux mots de passe : les anciens comptes (6 caractères) se connectent toujours
+  $('#auth-password').placeholder = t(mode === 'login' ? 'passwordPhLogin' : 'passwordPh');
   $('#auth-forgot').classList.toggle('hidden', mode !== 'login');
   authMsg('');
 }
@@ -113,6 +116,8 @@ async function submitAuth(ev) {
   ev.preventDefault();
   const email = $('#auth-email').value.trim(), pw = $('#auth-password').value;
   const btn = $('#auth-submit');
+  // Même règle que le projet Firebase (8 caractères) : message clair avant l'envoi
+  if (authMode === 'register' && pw.length < MIN_PASSWORD) { authMsg(t('auth/weak-password')); return; }
   btn.disabled = true;
   authMsg('');
   try {
