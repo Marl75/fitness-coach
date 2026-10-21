@@ -29,6 +29,25 @@
     UI.date = isoDate(); setTab('today'); await wait();
     ok($('.empty'), 'écran d’accueil absent');
   });
+  await step('Bien démarrer, présentation et onglet Réglages', async () => {
+    savePrefs({ weeklyGoal: undefined, setupHidden: undefined, onboarded: undefined }); render(); await wait();
+    ok($('.setup-card') && document.querySelectorAll('.setup-step').length === 3, 'carte Bien démarrer absente');
+    ok($('.nav-btn[data-tab="settings"].has-dot'), 'point sur Réglages absent');
+    openOnboarding(); ok($('#onboarding h3'), 'présentation absente');
+    UI.ob.goal = 4; $('#onboarding .btn-accent').click(); await wait();
+    ok(weeklyGoal() === 4 && UI.ob.step === 1, 'étape 1 de la présentation');
+    setGoal('glutes', 'up'); await wait(); ok($('#onboarding .chip.active'), 'muscle cible non coché');
+    $('#onboarding .btn-accent').click(); await wait(); ok(UI.ob.step === 2, 'étape 3 absente');
+    closeSheet(); await wait();
+    ok(prefs().onboarded, 'présentation pas marquée vue');
+    ok(document.querySelectorAll('.setup-step.done').length === 2, 'carte non cochée au fil de l’eau');
+    hideSetupCard(); await wait(); ok(!$('.setup-card'), 'carte non masquée');
+    setTab('settings'); await wait();
+    ok(document.querySelectorAll('#view .btn-line').length >= 5 && $('#goal-val'), 'onglet Réglages incomplet');
+    changeGoal(-1); await wait(); ok(weeklyGoal() === 3, 'objectif par semaine non modifié');
+    savePrefs({ goals: { pecs: 'up', lats: 'up', upperback: 'up', traps: 'down' } });
+    setTab('today'); await wait();
+  });
   await step('Ajouter un exercice de muscu', async () => {
     pickExercise('dev-couche'); await wait(200);
     ok(entryOf('dev-couche'), 'exercice non ajouté');
@@ -46,12 +65,19 @@
     stepSetReps(e.id, 0, 1); await wait();
     const reps0 = entryOf('dev-couche').sets[0].reps;
     e.sets.forEach((_, k) => finishSetAt(e.id, k)); await wait();
-    ok(!isPending(entryOf('dev-couche')), 'séries pas toutes faites');
-    openSet(e.id, 0); setWeight('12,75'); saveSet(); await wait(200);
+    // La dernière série cochée laisse l'exercice ouvert : « Une de plus » ou « Terminer l'exercice »
+    ok(isPending(entryOf('dev-couche')) && $('.now .all-done'), 'exercice fermé après la dernière série');
+    addPlannedSet(e.id); await wait();
+    ok(entryOf('dev-couche').sets.length === 4 && pendingIndex(entryOf('dev-couche')) === 3, '« Une de plus » ratée');
+    finishSetAt(e.id, 3); await wait();
+    openSet(e.id, 0); ok(document.querySelectorAll('#sheet .counter').length === 2, 'compteurs poids et répétitions absents');
+    $('#weight-input').value = '12,75'; $('#weight-input').dispatchEvent(new Event('input')); saveSet(); await wait(200);
     const s0 = entryOf('dev-couche').sets[0];
     ok(s0.weight === 12.75 && s0.reps === reps0 && s0.done, 'réglage précis incorrect');
-    undoSet(e.id, 2); await wait(); ok(isPending(entryOf('dev-couche')), 'annulation de coche ratée');
+    undoSet(e.id, 2); await wait(); ok(pendingIndex(entryOf('dev-couche')) === 2, 'annulation de coche ratée');
     finishSetAt(e.id, 2); await wait();
+    stopEntry(e.id); await wait();
+    ok(!isPending(entryOf('dev-couche')) && entryOf('dev-couche').sets.length === 4, '« Terminer l’exercice » raté');
   });
   await step('Cardio : carte en cours et « C’est fait »', async () => {
     pickExercise('marche-inclinee'); await wait(200);
@@ -60,7 +86,16 @@
     ok($('.now .fgrid'), 'réglages du cardio absents');
     stepEntryField(c.id, 'incline', 1); setEntryField(c.id, 'speed', '5,5'); await wait();
     ok(entryOf('marche-inclinee').speed === 5.5, 'vitesse non enregistrée');
-    finishCardio(c.id); await wait();
+    // Dernière valeur tapée puis « C'est fait » sans quitter le champ : la valeur compte et le bouton reste en place
+    const input = $('.now .fgrid input'), btn = $('.now .btn-accent');
+    input.focus(); input.value = '42'; input.dispatchEvent(new Event('input')); await wait();
+    ok(document.body.contains(btn), 'écran redessiné pendant la saisie (appui perdu)');
+    // Comme un doigt : appui (le champ perd le focus), relâché, puis le clic
+    document.dispatchEvent(new Event('pointerdown')); input.blur(); document.dispatchEvent(new Event('pointerup'));
+    ok(document.body.contains(btn), 'bouton remplacé avant le clic');
+    btn.click(); await wait();
+    const k0 = fieldsFor(c.exId, c.kind, c).filter(k => k !== 'track')[0];
+    ok(entryOf('marche-inclinee')[k0] === 42, 'dernière valeur tapée perdue');
     ok(entryDone(entryOf('marche-inclinee')), 'cardio non terminé');
   });
   await step('Précisions cardio (éditeur) sans perdre l’état', async () => {
@@ -135,7 +170,8 @@
   });
   await step('Suivi : bilan, muscle, exercices', async () => {
     setTab('track'); await wait();
-    ok(document.querySelectorAll('.mrow').length > 0 && $('.cardio-line'), 'bilan incomplet');
+    ok(document.querySelectorAll('.heat-cell').length === MUSCLES.length && document.querySelectorAll('.kpi').length === 3, 'bilan incomplet');
+    ok(document.querySelectorAll('.prog-line').length > 0, 'progression absente');
     openMuscle('glutes'); ok($('#sheet .pick'), 'exercices du muscle absents');
     openExerciseList(); ok($('#sheet .ex-list'), 'liste par exercice absente');
     // rowing haltère : historique créé plus haut par le test lui-même (indépendant des données déjà présentes)
@@ -144,6 +180,7 @@
   });
   await step('Mon compte : pseudo, objectifs, exercices créés', async () => {
     openMenu(); ok($('#pseudo-input'), 'pseudo absent');
+    ok(!$('#sheet #goal-val'), 'réglages encore dans Mon compte');
     savePseudo('Testeur'); await wait(); ok(pseudo() === 'Testeur', 'pseudo non enregistré');
     openGoals(); ok(document.querySelectorAll('.goal-line').length === MUSCLES.length, 'objectifs incomplets');
     openMyExercises(); ok($('#my-ex'), 'exercices créés absents');

@@ -1,23 +1,65 @@
 // ===== ÉCRAN SUIVI =====
 
 // ===== ONGLET SUIVI =====
+// Tableau de bord : les chiffres de la semaine, les muscles en couleurs, les semaines, la progression.
 function renderTrack() {
-  const now = new Date();
-  if (!UI.month) UI.month = new Date(now.getFullYear(), now.getMonth(), 1);
-  const month = sessionsInRange(isoDate(new Date(now.getFullYear(), now.getMonth(), 1)), isoDate());
-  const monthName = now.toLocaleDateString(locale(), { month: 'long' });
-
-  const monday = mondayOf(now);
-  const week = sessionsInRange(isoDate(monday), isoDate());
-  // Le bilan de la semaine d'abord ; les semaines en bref ; les exercices sur une page à part
+  const [from, to] = weekRange();
+  const week = sessionsInRange(from, to), goal = weeklyGoal();
+  const { cardioMin } = muscleWeek(from, to);
+  const streak = goalStreak();
+  const kpi = (label, v, unit, ok) => `<div class="kpi${ok ? ' ok' : ''}"><span class="kpi-k">${label}</span>
+    <span class="kpi-v serif">${v}<small>${unit}</small></span></div>`;
   $('#view').innerHTML = `
     <div class="page-head">
-      <div class="head-row"><span class="eyebrow">${t('weekOfLong', { date: esc(fmtDM(isoDate(monday))) })}</span></div>
-      <h1>${tn('weekSessions', week, { goal: weeklyGoal() })}</h1>
+      <div class="head-row"><span class="eyebrow">${t('weekOfLong', { date: esc(fmtDM(from)) })}</span></div>
+      <h1 class="sr-only">${t('navTrack')}</h1>
+    </div>
+    <div class="kpis">
+      ${kpi(t('kpiSessions'), week, ` / ${goal}`, week >= goal)}
+      ${kpi(t('kpiCardio'), Math.round(cardioMin), ` / ${CARDIO_TARGET} min`, cardioMin >= CARDIO_TARGET)}
+      ${kpi(t('kpiStreak'), streak, ` ${t('weeksShort')}`, streak > 0)}
     </div>
     <section class="card">${musclesCardHtml()}</section>
     <section class="card"><h2 class="card-title">${t('lastWeeks')}</h2>${weeksHtml()}</section>
-    <button class="btn-line row-btn" onclick="openExerciseList()">${t('byExerciseLong')}${icon('chev')}</button>`;
+    <section class="card">${progressCardHtml()}</section>`;
+}
+// Semaines d'affilée où l'objectif est atteint (la semaine en cours compte dès qu'il l'est)
+function goalStreak() {
+  const goal = weeklyGoal();
+  const counts = {};
+  for (const s of activeSessions()) { const k = isoDate(mondayOf(toDate(s.id))); counts[k] = (counts[k] || 0) + 1; }
+  let mon = mondayOf(new Date()), n = 0;
+  if ((counts[isoDate(mon)] || 0) >= goal) n++;
+  for (mon = addDays(mon, -7); (counts[isoDate(mon)] || 0) >= goal; mon = addDays(mon, -7)) n++;
+  return n;
+}
+
+// Progression : les exercices faits le plus récemment, avec leur courbe en miniature
+function progressCardHtml() {
+  const ids = [];
+  for (const s of activeSessions()) for (const e of s.entries) if (entryDone(e) && !ids.includes(e.exId)) ids.push(e.exId);
+  const head = `<h2 class="card-title">${t('progressTitle')}</h2>`;
+  if (!ids.length) return `${head}<p class="muted small">${t('emptyExercises')}</p>`;
+  const lines = ids.slice(0, 5).map(id => {
+    const hist = historyOf(id);
+    const metric = metricFor(hist[0].entry.kind, hist);
+    const vals = hist.slice(0, 10).reverse().map(h => metric.get(h.entry)).filter(v => v !== null);
+    const a = vals[0], b = vals[vals.length - 1];
+    const pct = vals.length >= 2 && a > 0 ? Math.round(100 * (b - a) / a) : null;
+    return `<button class="prog-line" onclick="openExercise('${esc(id)}')">${pictoTile(exOfEntry(hist[0].entry), 'small')}
+      <span class="prog-name">${esc(entryName(hist[0].entry))}<span class="prog-sub">${esc(metric.fmt(b ?? 0))}</span></span>
+      ${sparkline(vals)}
+      <span class="prog-pct${pct > 0 ? ' up' : pct < 0 ? ' down' : ''}">${pct === null ? '' : `${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct)} %`}</span>
+    </button>`;
+  }).join('');
+  return `${head}<div class="prog-list">${lines}</div>
+    <button class="btn-line row-btn" onclick="openExerciseList()">${t('allExercises', { n: ids.length })}${icon('chev')}</button>`;
+}
+function sparkline(vals) {
+  if (vals.length < 2) return '<span class="spark"></span>';
+  const lo = Math.min(...vals), hi = Math.max(...vals), w = 64, h = 20;
+  const pts = vals.map((v, i) => `${(i * w / (vals.length - 1)).toFixed(1)},${(hi === lo ? h / 2 : h - 2 - (v - lo) * (h - 4) / (hi - lo)).toFixed(1)}`);
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts.join(' ')}"/></svg>`;
 }
 function openExerciseList() {
   openSheet(`

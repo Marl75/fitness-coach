@@ -26,6 +26,7 @@ function launchRoutine(id) {
   if (!r) return;
   const s = cloneSession(UI.date);
   const exs = r.items.map(findExercise).filter(Boolean);
+  closeOpenEntries(s);
   exs.forEach(ex => s.entries.push(buildEntry(ex)));
   s.routine = { id: r.id, name: r.name };
   saveSession(s);
@@ -78,7 +79,7 @@ function saveRoutineFromDraft() {
 // Mon compte › Mes routines : créer, modifier, changer l'ordre, supprimer
 function openRoutines() {
   openSheet(`
-    <div class="sheet-head"><div><div class="eyebrow">${t('account')}</div><h3>${t('myRoutines')}</h3></div>
+    <div class="sheet-head"><div><div class="eyebrow">${t('navSettings')}</div><h3>${t('myRoutines')}</h3></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button></div>
     <button class="btn-accent big" onclick="openRoutineEditor()">${icon('plus')}${t('newRoutine')}</button>
     <p class="muted small routines-hint">${t('routinesHint2')}</p>

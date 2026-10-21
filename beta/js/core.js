@@ -53,19 +53,8 @@ function updateEntry(date, entryId, fn) {
   return e;
 }
 
-// ===== PILE DE PLAQUES =====
-// Comme sur une machine : les plaques légères en haut, la goupille choisit le poids.
+// Ce que change un appui sur + ou − pour le poids (une plaque)
 const STEP = 2.5;
-const plateLabel = v => (v ? fmtNum(v) : t('plateNone'));
-// Plaque où se place la goupille : la plus lourde sans dépasser le poids (12,75 kg → plaque 12,5)
-const pinPlate = (values, w) => values.filter(v => v <= w).pop() ?? values[0];
-function stackHtml(values, pin, action, cls = '') {
-  const at = pinPlate(values, pin);
-  return `<div class="stack ${cls}" role="group" aria-label="${t('stackAria')}">${values.map(v => {
-    const state = v === at ? 'pin' : v < at ? 'lifted' : '';
-    return `<button type="button" class="plate ${state}" data-v="${v}" onclick="${action}(${v})" aria-pressed="${v === at}" aria-label="${v ? t('kilos', { w: fmtNum(v) }) : t('plateNoneAria')}">${plateLabel(v)}</button>`;
-  }).join('')}</div>`;
-}
 
 // ===== NAVIGATION =====
 function setTab(tab) {
@@ -75,13 +64,27 @@ function setTab(tab) {
   render();
 }
 
+// Champ de l'écran en cours de saisie (data-live) : sa valeur est enregistrée à chaque chiffre, mais on ne
+// redessine pas l'écran sous le doigt, sinon l'appui sur « C'est fait » juste après serait perdu.
+// On redessine une fois le champ quitté et le doigt levé (après le clic éventuel).
+let viewStale = false, pointerIsDown = false;
+const typingInView = () => !!(document.activeElement && document.activeElement.matches('#view input[data-live]'));
+const renderIfStale = () => { if (viewStale && !typingInView()) render(); };
+document.addEventListener('pointerdown', () => { pointerIsDown = true; }, true);
+for (const ev of ['pointerup', 'pointercancel']) document.addEventListener(ev, () => { pointerIsDown = false; if (viewStale) setTimeout(renderIfStale, 0); }, true);
+document.addEventListener('focusout', () => { if (viewStale && !pointerIsDown) setTimeout(renderIfStale, 0); });
+
 function render() {
   if (!Data.user) return;
+  if (typingInView()) { viewStale = true; return; }
+  viewStale = false;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === UI.tab));
   $('#sync').classList.toggle('hidden', !(Data.pending || !navigator.onLine) || DEMO);
-  if (UI.tab === 'today') renderToday(); else renderTrack();
+  const set = document.querySelector('.nav-btn[data-tab="settings"]');
+  if (set) set.classList.toggle('has-dot', setupPending());
+  if (UI.tab === 'today') renderToday(); else if (UI.tab === 'settings') renderSettings(); else renderTrack();
 }
-onDataChange = () => { render(); if (sheetRefresh) sheetRefresh(); scheduleVisit(); };
+onDataChange = () => { render(); if (sheetRefresh) sheetRefresh(); scheduleVisit(); maybeOnboard(); };
 window.addEventListener('online', render);
 window.addEventListener('offline', render);
 

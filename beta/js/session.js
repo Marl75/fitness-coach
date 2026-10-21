@@ -40,14 +40,15 @@ function renderToday() {
       <div class="empty">
         <p class="muted">${isToday ? t('weekProgress', { n: weekCount, goal: weeklyGoal() }) : t('noSessionDay')}
           ${hint ? ` ${hint}` : ''}${!isToday && last ? '' : ''}</p>
+        ${isToday ? setupCardHtml() : ''}
         ${routineCardsHtml()}
         <button class="${routines().length ? 'btn-outline' : 'btn-accent big'}" onclick="openPicker()">${icon('plus')}${isToday ? t('freeSession') : t('addExercise')}</button>
-        ${!routines().length && isToday ? `<p class="muted small routine-hint">${t('routineHint')}</p>` : ''}
+        ${!routines().length && isToday && !setupPending() ? `<p class="muted small routine-hint">${t('routineHint')}</p>` : ''}
         ${quickFavs()}
       </div>`;
   } else {
     html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e)).join('')}</div>
-      <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current ? t('addAnother') : t('nextExercise')}</button>
+      <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current && !current.open ? t('addAnother') : t('nextExercise')}</button>
       ${current ? '' : quickFavs()}
       ${entries.some(entryDone) ? `<p class="muted small center foot">${sessionFoot(entries)}</p>` : ''}
       ${!current && entries.some(entryDone) ? `<p class="center"><button class="link" onclick="openSaveRoutine()">${t('saveAsRoutine')}</button></p>` : ''}`;
@@ -117,10 +118,16 @@ function currentCard(e) {
       <div class="srow hd"><span class="sn">#</span><span>${t('colWeight')}</span><span>${t('colReps')}</span><span></span></div>
       ${rows}
     </div>
-    <div class="sets-actions">
+    ${i < 0 ? `<div class="all-done">
+      <p class="all-done-title">${tn('allSetsDone', doneSets(e).length)}</p>
+      <div class="sets-actions">
+        <button class="add" onclick="addPlannedSet('${id}')">${icon('plus')}${t('oneMoreSet')}</button>
+        <button class="finish" onclick="stopEntry('${id}')">${t('finishExLong')}</button>
+      </div>
+    </div>` : `<div class="sets-actions">
       <button class="add" onclick="addPlannedSet('${id}')">${icon('plus')}${t('addSetBtn')}</button>
       <button onclick="stopEntry('${id}')">${t('finishEx')}</button>
-    </div>
+    </div>`}
     <div class="now-links">
       <button onclick="openEntry('${id}')">${t('details')}</button>
     </div>
@@ -142,7 +149,7 @@ function cardioCard(e) {
   const cells = fields.filter(k => k !== 'track').map(k => `<div class="fcell">
       <p class="flabel">${t('fs_' + k)}</p>
       <div class="fstep"><button onclick="stepEntryField('${id}','${k}',-1)" aria-label="${t('minus')} : ${t('fs_' + k)}">${icon('minus')}</button>
-        <input class="serif" inputmode="decimal" value="${e[k] === null || e[k] === undefined ? '' : fmtNum(e[k])}" placeholder="—" onchange="setEntryField('${id}','${k}',this.value)" onfocus="this.select()" aria-label="${t('fs_' + k)}">
+        <input class="serif" inputmode="decimal" value="${e[k] === null || e[k] === undefined ? '' : fmtNum(e[k])}" placeholder="—" data-live oninput="setEntryField('${id}','${k}',this.value)" onfocus="this.select()" aria-label="${t('fs_' + k)}">
         <button onclick="stepEntryField('${id}','${k}',1)" aria-label="${t('plus')} : ${t('fs_' + k)}">${icon('plus')}</button></div>
       <p class="funit">${t('unit_' + k)}</p></div>`).join('');
   const track = fields.includes('track') ? `<div class="chips wrap ftrack">${tracks().map(tr =>
@@ -185,7 +192,6 @@ function setEntryTrack(entryId, trackId) {
   updateEntry(UI.date, entryId, e => { e.track = e.track === trackId ? null : trackId; });
 }
 function finishCardio(entryId) {
-  if (document.activeElement && document.activeElement.onchange) document.activeElement.onchange();
   updateEntry(UI.date, entryId, e => { delete e.pending; });
   toast(t('exerciseDone'));
 }
@@ -209,9 +215,10 @@ function removeCurrent(entryId) {
     saveSession(back);
   } });
 }
+// La dernière série cochée ne ferme pas l'exercice : il reste ouvert (« Une de plus » ou « Terminer l'exercice »)
 function finishSetAt(entryId, k) {
-  const e = updateEntry(UI.date, entryId, e => { e.sets[k].done = true; });
-  if (e) toast(pendingIndex(e) < 0 ? t('exerciseDone') : t('setNDone', { n: k + 1 }));
+  updateEntry(UI.date, entryId, e => { e.sets[k].done = true; if (pendingIndex(e) < 0) e.open = true; });
+  toast(t('setNDone', { n: k + 1 }));
 }
 function undoSet(entryId, k) {
   updateEntry(UI.date, entryId, e => { e.sets[k].done = false; });
@@ -220,16 +227,17 @@ function undoSet(entryId, k) {
 function stepSetReps(entryId, k, d) {
   updateEntry(UI.date, entryId, e => { e.sets[k].reps = Math.max(0, (e.sets[k].reps || 0) + d) || null; });
 }
-function finishAll(entryId) {
-  updateEntry(UI.date, entryId, e => e.sets.forEach(s => { s.done = true; }));
-  toast(t('exerciseDone'));
-}
 function addPlannedSet(entryId) {
   updateEntry(UI.date, entryId, e => { e.sets.push({ ...e.sets[e.sets.length - 1], done: false }); });
 }
 // Terminer : les séries prévues non faites sont retirées
 function stopEntry(entryId) {
-  updateEntry(UI.date, entryId, e => { e.sets = e.sets.filter(s => s.done !== false); });
+  const e = updateEntry(UI.date, entryId, e => { e.sets = e.sets.filter(s => s.done !== false); delete e.open; });
+  if (e && e.sets.length) toast(t('exerciseDone'));
+}
+// Passer à un autre exercice termine celui qui était resté ouvert après sa dernière série
+function closeOpenEntries(session) {
+  for (const e of session.entries) delete e.open;
 }
 
 function goToDay(date) {
