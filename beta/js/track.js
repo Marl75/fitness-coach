@@ -23,11 +23,16 @@ function renderTrack() {
     <section class="card"><h2 class="card-title">${t('lastWeeks')}</h2>${weeksHtml()}</section>
     <section class="card">${progressCardHtml()}</section>`;
 }
+// Nombre de séances par semaine : { 'AAAA-MM-JJ' du lundi: n }
+function sessionsPerWeek() {
+  const counts = {};
+  for (const s of activeSessions()) { const k = isoDate(mondayOf(toDate(s.id))); counts[k] = (counts[k] || 0) + 1; }
+  return counts;
+}
 // Semaines d'affilée où l'objectif est atteint (la semaine en cours compte dès qu'il l'est)
 function goalStreak() {
   const goal = weeklyGoal();
-  const counts = {};
-  for (const s of activeSessions()) { const k = isoDate(mondayOf(toDate(s.id))); counts[k] = (counts[k] || 0) + 1; }
+  const counts = sessionsPerWeek();
   let mon = mondayOf(new Date()), n = 0;
   if ((counts[isoDate(mon)] || 0) >= goal) n++;
   for (mon = addDays(mon, -7); (counts[isoDate(mon)] || 0) >= goal; mon = addDays(mon, -7)) n++;
@@ -71,11 +76,7 @@ function openExerciseList() {
 function weeksHtml() {
   const goal = weeklyGoal();
   const thisMonday = mondayOf(new Date());
-  const counts = {};
-  for (const s of activeSessions()) {
-    const k = isoDate(mondayOf(toDate(s.id)));
-    counts[k] = (counts[k] || 0) + 1;
-  }
+  const counts = sessionsPerWeek();
   const cols = [];
   for (let i = 7; i >= 0; i--) {
     const mon = addDays(thisMonday, -7 * i);
@@ -90,7 +91,7 @@ function weeksHtml() {
   return `<div class="weeks">${cols.join('')}</div>`;
 }
 
-// Calendrier d'un mois : jours de sport en vert. Sert au Suivi et au choix « Autre jour ».
+// Calendrier d'un mois : jours de sport en vert (choix « Autre jour »).
 function calendarGrid(m, { selected, action, prev, next }) {
   const today = isoDate();
   const y = m.getFullYear(), mo = m.getMonth();
@@ -126,10 +127,6 @@ function calendarGrid(m, { selected, action, prev, next }) {
 const monthStart = d => new Date(d.getFullYear(), d.getMonth(), 1);
 const shiftedMonth = (m, n) => { const x = new Date(m.getFullYear(), m.getMonth() + n, 1); return x > new Date() ? m : x; };
 
-function calendarHtml() {
-  return calendarGrid(UI.month, { selected: UI.selDay, action: 'selectDay', prev: 'shiftMonth(-1)', next: 'shiftMonth(1)' }) + dayDetailHtml();
-}
-
 // « Autre jour » : même calendrier, pour aller noter ou revoir une séance passée
 function openDayPicker() {
   UI.pickMonth = monthStart(toDate(UI.date));
@@ -143,25 +140,6 @@ function renderDayPicker() {
   if (box) box.innerHTML = calendarGrid(UI.pickMonth, { selected: UI.date, action: 'goToDay', prev: 'pickMonthShift(-1)', next: 'pickMonthShift(1)' });
 }
 function pickMonthShift(n) { UI.pickMonth = shiftedMonth(UI.pickMonth, n); renderDayPicker(); }
-
-function dayDetailHtml() {
-  if (!UI.selDay) return `<p class="muted small cal-hint">${t('tapDay')}</p>`;
-  const entries = ((sessionOf(UI.selDay) || {}).entries || []).filter(entryDone);
-  return `<div class="day-detail">
-    <p class="day-detail-title">${esc(cap(fmtDay(UI.selDay)))}</p>
-    ${entries.length
-      ? entries.map(e => `<div class="day-line"><span>${esc(entryName(e))}</span><span>${esc(entrySummary(e))}</span></div>`).join('')
-        + `<button class="btn-outline" onclick="goToDay('${UI.selDay}')">${t('viewEdit')}</button>`
-      : `<p class="muted small">${t('noSportDay')}</p><button class="btn-outline" onclick="goToDay('${UI.selDay}')">${t('addThatDay')}</button>`}
-  </div>`;
-}
-
-function selectDay(id) { UI.selDay = UI.selDay === id ? null : id; render(); }
-function shiftMonth(n) {
-  UI.month = shiftedMonth(UI.month, n);
-  UI.selDay = null;
-  render();
-}
 
 // Valeur suivie pour un exercice : charge max, total de répétitions, ou durée
 function metricFor(kind, hist) {

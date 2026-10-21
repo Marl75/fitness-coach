@@ -4,7 +4,6 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const icon = (id, cls = '') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
 // Dates au format AAAA-MM-JJ, toujours en heure locale
 // (l'ancienne appli utilisait l'heure UTC : à Singapour, une séance avant 8 h tombait la veille).
@@ -17,7 +16,6 @@ const daysBetween = (a, b) => Math.round((toDate(b) - toDate(a)) / 86400000);
 const fmtDay = s => toDate(s).toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
 const fmtShort = s => toDate(s).toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
 const fmtDM = s => toDate(s).toLocaleDateString(locale(), { day: 'numeric', month: 'long' });
-const fmtLong = s => toDate(s).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' });
 function relDay(s) {
   const n = daysBetween(s, isoDate());
   if (n === 0) return t('today');
