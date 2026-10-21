@@ -65,14 +65,14 @@ function openMenu() {
         <label class="name-edit"><span class="sr-only">${t('pseudo')}</span>
           <input class="serif" id="pseudo-input" maxlength="30" autocomplete="nickname" placeholder="${t('pseudoPh')}" value="${esc(pseudo())}"
             onchange="savePseudo(this.value)" onkeydown="if(event.key==='Enter')this.blur()">${icon('edit')}</label>
-        <p class="muted small">${esc(Data.user.email)}</p></div>
+        <p class="muted small">${DEMO ? t('demoAccount') : esc(Data.user.email)}</p></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     ${DEMO ? `<p class="demo-note">${t('demoMenu')}</p>` : ''}
     <div class="menu-list">
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
       <button class="btn-line" onclick="closeSheet();setTab('settings')">${t('navSettings')}<span class="btn-sub">${t('settingsSub')}</span></button>
-      <button class="btn-quiet" onclick="logout()">${t('logout')}</button>
+      <button class="btn-quiet" onclick="logout()">${DEMO ? t('leaveDemo') : t('logout')}</button>
       <a class="privacy-link" href="privacy-policy.html" target="_blank" rel="noopener">${t('privacy')}</a>
     </div>`);
 }

@@ -2,11 +2,13 @@
 
 // ===== DÉMARRAGE =====
 applyTranslations();
+// ?signup (lien « Créer un compte » du site) : onglet Inscription ouvert d'office
+if (new URLSearchParams(location.search).has('signup')) switchAuth('register');
 startAuth(user => {
   $('#auth-screen').classList.toggle('hidden', !!user);
   $('#app').classList.toggle('hidden', !user);
   $('#nav').classList.toggle('hidden', !user);
-  $('#demo-note').classList.toggle('hidden', !DEMO);
+  $('#demo-bar').classList.toggle('hidden', !(user && DEMO && !window.BETA));
   usageRecorded = false; // nouvelle connexion : une visite à compter
   if (user) { UI.date = isoDate(); render(); }
   else hideSheet();

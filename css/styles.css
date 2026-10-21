@@ -76,6 +76,9 @@ h3 { font-size: 30px; }
 textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .auth-msg { font-size: 14px; padding: 10px 12px; border-radius: 12px; margin-bottom: 14px; background: rgba(255, 138, 122, 0.12); color: var(--danger); }
 .auth-msg.ok { background: var(--accent-soft); color: var(--accent); }
+.try-demo { display: block; margin: 18px auto 0; text-align: center; font-weight: 700; color: var(--accent); font-size: 15px; }
+.demo-bar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 6px max(12px, env(safe-area-inset-right, 0px)) 6px max(12px, env(safe-area-inset-left, 0px)); padding-top: calc(6px + env(safe-area-inset-top, 0px)); background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 700; }
+.demo-bar button { padding: 4px 12px; border-radius: 999px; background: var(--accent-ink); color: var(--accent); font-weight: 800; font-size: 12px; }
 .demo-note { margin: 18px 0 0; font-size: 13px; color: var(--text-dim); border: 1px dashed var(--steel); border-radius: 12px; padding: 10px 12px; }
 .sheet .demo-note { margin: 0 0 16px; }
 
