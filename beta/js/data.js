@@ -71,7 +71,8 @@ function demoBackend() {
   const KEY = 'fitcoach-demo-v2';
   let store = null;
   try { store = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-  if (!store || store.day !== isoDate()) store = { day: isoDate(), user: { uid: 'demo', email: '' }, ...demoData() };
+  // Refaites chaque jour, et dans la langue de l'appli (noms des routines, commentaires)
+  if (!store || store.day !== isoDate() || store.lang !== currentLang) store = { day: isoDate(), lang: currentLang, user: { uid: 'demo', email: '' }, ...demoData() };
   let authCb = () => {}, emitCb = null;
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
   const push = () => {
@@ -106,6 +107,7 @@ function leaveDemo(signup) {
 // Compte d'exemple : 12 semaines à environ 3 séances (bas du corps, haut du corps, cardio ou yoga),
 // des charges qui progressent, des objectifs par muscle, deux routines et un objectif de répétitions.
 function demoData() {
+  const en = currentLang === 'en';
   let seed = 11;
   const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const today = new Date();
@@ -127,20 +129,20 @@ function demoData() {
     else if (dow === 2) entries = upper.map(x => sets(x, progress, k));
     else entries = rand() > 0.35
       ? [{ id: `e${k}-c`, exId: 'marche-inclinee', name: 'Marche inclinée', kind: 'cardio', note: '', duration: 30 + Math.round(progress * 3) * 5, speed: 5, incline: 8 + Math.round(progress * 4), carry: null }]
-      : [{ id: `e${k}-y`, exId: 'yoga', name: 'Yoga', kind: 'time', note: 'Cours du samedi', duration: 60 }];
+      : [{ id: `e${k}-y`, exId: 'yoga', name: 'Yoga', kind: 'time', note: en ? 'Saturday class' : 'Cours du samedi', duration: 60 }];
     if (dow !== 5 && rand() > 0.5) entries.push({ id: `e${k}-t`, exId: 'tapis', name: 'Course sur tapis', kind: 'cardio', note: '', duration: 15 + Math.round(rand() * 2) * 5, distance: null });
     const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 18, 30).getTime();
     sessions[isoDate(d)] = { entries, createdAt: at, updatedAt: at };
     k++;
   }
   const settings = { prefs: {
-    pseudo: 'Démo', weeklyGoal: 3, onboarded: true, setupHidden: true,
+    pseudo: en ? 'Demo' : 'Démo', weeklyGoal: 3, onboarded: true, setupHidden: true,
     goals: { glutes: 'up', upperback: 'up', lats: 'up', traps: 'down' },
     favorites: ['hipthrust', 'lat-pulldown'],
     repTargets: { hipthrust: [8, 12] },
     routines: [
-      { id: 'r-bas', name: 'Bas du corps', items: lower.map(x => x[0]) },
-      { id: 'r-haut', name: 'Haut du corps', items: upper.map(x => x[0]) },
+      { id: 'r-bas', name: en ? 'Lower body' : 'Bas du corps', items: lower.map(x => x[0]) },
+      { id: 'r-haut', name: en ? 'Upper body' : 'Haut du corps', items: upper.map(x => x[0]) },
     ],
   } };
   return { sessions, exercises: {}, settings };
