@@ -37,8 +37,9 @@ const fmtNum = n => { const s = String(Math.round(n * 100) / 100); return curren
 const doneSets = e => (e.sets || []).filter(s => s.done !== false && (s.reps || s.weight));
 const pendingIndex = e => e.kind === 'sets' ? (e.sets || []).findIndex(s => s.done === false) : -1;
 // Cardio, cours : « pending » tant que « C'est fait » n'a pas été touché (exercice prévu ou en cours)
+// Muscu : « open » une fois la dernière série cochée, jusqu'à « Terminer » (on peut encore ajouter une série)
 const entryDone = e => (e.kind === 'sets' ? doneSets(e).length > 0 : !e.pending);
-const isPending = e => (e.kind === 'sets' ? pendingIndex(e) >= 0 : !!e.pending);
+const isPending = e => (e.kind === 'sets' ? pendingIndex(e) >= 0 || !!e.open : !!e.pending);
 
 // Résumé lisible d'un exercice noté : « 3 × 10 · 20 kg », « 25 min · 3 km »
 function entrySummary(e) {

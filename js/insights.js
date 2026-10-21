@@ -39,11 +39,10 @@ const weekRange = () => [isoDate(mondayOf(new Date())), isoDate()];
 
 function musclesCardHtml() {
   const [from, to] = weekRange();
-  const { days, cardioMin } = muscleWeek(from, to);
+  const { days } = muscleWeek(from, to);
   const goals = prefs().goals || {};
   const n = m => (days[m] || new Set()).size;
-  const list = MUSCLES.filter(m => n(m) || goals[m])
-    .sort((a, b) => ((goals[b] === 'up') - (goals[a] === 'up')) || ((goals[a] === 'down') - (goals[b] === 'down')) || (n(b) - n(a)));
+  const list = [...MUSCLES].sort((a, b) => ((goals[b] === 'up') - (goals[a] === 'up')) || (n(b) - n(a)));
 
   // Points d'attention : muscles à ménager sollicités, muscles à développer en retard
   const alerts = MUSCLES.filter(m => goals[m] === 'down' && n(m)).map(m => t('alertSpareDays', { m: cap(muscleShort(m)), n: tn('daysN', n(m)) }));
@@ -53,30 +52,22 @@ function musclesCardHtml() {
     alerts.push(lt ? t('alertNotSince', { m: cap(muscleShort(m)), when: relDay(lt) }) : t('alertNever', { m: cap(muscleShort(m)) }));
   }
 
-  const dots = (k, g) => {
-    const slots = Math.max(g === 'up' ? DAYS_TARGET : 0, k, 1);
-    return Array.from({ length: slots }, (_, i) => `<span class="dot${i < k ? ' on' : ''}${i >= k && g === 'up' && i < DAYS_TARGET ? ' want' : ''}"></span>`).join('');
-  };
-  const rows = list.map(m => {
+  // Grille des muscles : vide = pas travaillé, clair = 1 jour, plein = 2 jours ou plus (le repère)
+  const cells = list.map(m => {
     const k = n(m), g = goals[m];
-    return `<button class="mrow ${g === 'down' ? 'warn' : g === 'up' ? 'up' : ''}" onclick="openMuscle('${m}')" aria-label="${esc(t('muscleOpenAria', { m: t('m_' + m) }))}">
-      <span class="mname">${esc(t('m_' + m).replace(/\s*\(.*\)$/, ''))}${g === 'up' ? ` <span class="mgoal">${t('goalUp').toLowerCase()}</span>` : g === 'down' ? ` <span class="mgoal warn">${t('goalDown').toLowerCase()}</span>` : ''}</span>
-      <span class="mdots" role="img" aria-label="${esc(tn('daysN', k))}">${dots(k, g)}</span>
-      <span class="mval">${tn('daysN', k)}</span>
-    </button>`;
+    const cls = ['heat-cell', k >= DAYS_TARGET ? 'h2' : k ? 'h1' : 'h0', g === 'down' && 'spare', g === 'up' && 'up'].filter(Boolean).join(' ');
+    return `<button class="${cls}" onclick="openMuscle('${m}')" aria-label="${esc(t('muscleOpenAria', { m: t('m_' + m) }) + ' : ' + tn('daysN', k))}">
+      <span class="heat-name">${esc(cap(muscleShort(m)))}</span><span class="heat-n">${k}</span></button>`;
   }).join('');
-  const pct = Math.min(100, Math.round(100 * cardioMin / CARDIO_TARGET));
 
-  return `<h2 class="card-title">${t('musclesWeek')}</h2>
-    <p class="muted small">${t('musclesDaysHint')}</p>
-    ${alerts.length ? `<ul class="malerts">${alerts.slice(0, 4).map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}
-    ${rows || `<p class="muted small">${t('musclesEmpty')}</p>`}
-    ${!Object.keys(goals).length ? `<button class="link" onclick="openGoals()">${t('musclesSetGoals')}</button>` : ''}
-    <div class="cardio-line">
-      <div class="mrow-top"><span class="mname">${t('cardioWeek')}</span><span class="mval">${t('cardioOf', { n: Math.round(cardioMin), target: CARDIO_TARGET })}</span></div>
-      <div class="mbar"><span class="main" style="width:${pct}%"></span></div>
-    </div>
-    <p class="tips-src">${t('musclesDaysSrc', { d: DAYS_TARGET, c: CARDIO_TARGET })} ${srcLink(ACSM_2026)}, ${srcLink(WHO_2020)}</p>`;
+  return `<div class="card-head"><h2 class="card-title">${t('musclesWeek')}</h2>
+      <button class="icon-btn info-btn" onclick="UI.musclesInfo=!UI.musclesInfo;render()" aria-expanded="${!!UI.musclesInfo}" aria-label="${t('musclesInfoAria')}">${icon('info')}</button></div>
+    ${UI.musclesInfo ? `<div class="muscles-info"><p class="muted small">${t('musclesDaysHint')}</p>
+      <p class="tips-src">${t('musclesDaysSrc', { d: DAYS_TARGET, c: CARDIO_TARGET })} ${srcLink(ACSM_2026)}, ${srcLink(WHO_2020)}</p></div>` : ''}
+    ${alerts.length ? `<ul class="malerts">${alerts.slice(0, 3).map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}
+    <div class="heat">${cells}</div>
+    <p class="heat-legend"><span><i class="heat-dot h1"></i>${t('heat1')}</span><span><i class="heat-dot h2"></i>${t('heat2', { d: DAYS_TARGET })}</span>${Object.values(goals).includes('down') ? `<span><i class="heat-dot spare"></i>${t('goalDown')}</span>` : ''}</p>
+    ${!Object.keys(goals).length ? `<button class="link" onclick="openGoals()">${t('musclesSetGoals')}</button>` : ''}`;
 }
 
 // Écran d'accueil : le muscle à développer le plus en retard cette semaine
@@ -218,7 +209,7 @@ function applyWeight(entryId, v) {
 function openMyExercises() {
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${t('account')}</div><h3>${t('myExercises')}</h3></div>
+      <div><div class="eyebrow">${t('navSettings')}</div><h3>${t('myExercises')}</h3></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <p class="muted small">${t('myExercisesHint')}</p>

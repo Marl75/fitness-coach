@@ -41,7 +41,7 @@ function goalsSummary() {
 function openGoals() {
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${t('account')}</div><h3>${t('goalsTitle')}</h3></div>
+      <div><div class="eyebrow">${t('navSettings')}</div><h3>${t('goalsTitle')}</h3></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <p class="muted small">${t('goalsHint')}</p>
@@ -57,6 +57,7 @@ function renderGoals() {
 }
 
 // ===== MON COMPTE =====
+// Seulement le compte : pseudo, e-mail, déconnexion. Le paramétrage est dans l'onglet Réglages.
 function openMenu() {
   openSheet(`
     <div class="sheet-head">
@@ -68,20 +69,9 @@ function openMenu() {
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     ${DEMO ? `<p class="demo-note">${t('demoMenu')}</p>` : ''}
-    <div class="goal">
-      <span>${t('weeklyGoal')}</span>
-      <div class="stepper small">
-        <button type="button" onclick="changeGoal(-1)" aria-label="${t('minus')}">${icon('minus')}</button>
-        <span class="serif" id="goal-val">${weeklyGoal()}</span>
-        <button type="button" onclick="changeGoal(1)" aria-label="${t('plus')}">${icon('plus')}</button>
-      </div>
-    </div>
-    <div class="goal"><span>${t('language')}</span>${langSwitchHtml()}</div>
     <div class="menu-list">
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
-      <button class="btn-line" onclick="openGoals()">${t('goalsTitle')}${goalsSummary() ? `<span class="btn-sub">${esc(goalsSummary())}</span>` : ''}</button>
-      <button class="btn-line" onclick="openRoutines()">${t('myRoutines')}</button>
-      <button class="btn-line" onclick="openMyExercises()">${t('myExercises')}</button>
+      <button class="btn-line" onclick="closeSheet();setTab('settings')">${t('navSettings')}<span class="btn-sub">${t('settingsSub')}</span></button>
       <button class="btn-quiet" onclick="logout()">${t('logout')}</button>
       <a class="privacy-link" href="privacy-policy.html" target="_blank" rel="noopener">${t('privacy')}</a>
     </div>`);
@@ -94,11 +84,6 @@ function savePseudo(v) {
   savePrefs({ pseudo: p || undefined });
   toast(p ? t('pseudoSaved', { p }) : t('pseudoRemoved'));
   if (!$('#sheet').classList.contains('hidden')) openMenu();
-}
-function changeGoal(d) {
-  const g = Math.min(7, Math.max(1, weeklyGoal() + d));
-  savePrefs({ weeklyGoal: g });
-  $('#goal-val').textContent = g;
 }
 function logout() { closeSheet(); Backend.logout(); }
 

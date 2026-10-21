@@ -336,6 +336,7 @@ function pickExercise(id, exObj) {
   const ex = exObj || findExercise(id);
   const entry = buildEntry(ex);
   const s = cloneSession(UI.date);
+  closeOpenEntries(s);
   s.entries.push(entry);
   saveSession(s);
   closeSheet();

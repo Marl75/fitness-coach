@@ -13,6 +13,7 @@ const Data = {
   exercises: [],  // exercices créés par l'utilisateur
   settings: [],   // réglages (document « prefs » : objectif par semaine)
   pending: false, // des écritures attendent le réseau
+  loaded: false,  // séances, exercices et réglages reçus du serveur au moins une fois
 };
 
 const Backend = DEMO ? demoBackend() : firebaseBackend();
@@ -34,11 +35,15 @@ function firebaseBackend() {
     logout: () => auth.signOut(),
     listen(emit) {
       const pending = { sessions: false, exercises: false, settings: false };
+      const fromServer = { sessions: false, exercises: false, settings: false };
       for (const name of ['sessions', 'exercises', 'settings']) {
         unsubs.push(col(name).onSnapshot({ includeMetadataChanges: true }, snap => {
           Data[name] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           pending[name] = snap.metadata.hasPendingWrites;
           Data.pending = Object.values(pending).some(Boolean);
+          // Tout reçu du serveur (pas seulement la copie du téléphone) : on sait si le compte est neuf
+          if (!snap.metadata.fromCache) fromServer[name] = true;
+          Data.loaded = Object.values(fromServer).every(Boolean);
           emit();
         }, e => console.warn('Lecture impossible :', e)));
       }
@@ -82,7 +87,7 @@ function demoBackend() {
     register: signIn,
     reset: async () => {},
     logout: async () => { store.user = null; save(); authCb(null); },
-    listen(emit) { emitCb = emit; push(); },
+    listen(emit) { emitCb = emit; Data.loaded = true; push(); },
     stop() { emitCb = null; },
     put(name, id, doc) { store[name][id] = doc; save(); push(); },
     del(name, id) { delete store[name][id]; save(); push(); },
@@ -126,6 +131,7 @@ function startAuth(onUser) {
     Data.sessions = [];
     Data.exercises = [];
     Data.settings = [];
+    Data.loaded = false;
     if (user) Backend.listen(() => {
       Data.sessions.sort((a, b) => b.id.localeCompare(a.id));
       onDataChange();
