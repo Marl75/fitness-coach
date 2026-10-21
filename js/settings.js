@@ -25,12 +25,7 @@ function renderSettings() {
       <button class="link center-link" onclick="openOnboarding()">${t('replayIntro')}</button>
     </div>`;
 }
-const goalStepperHtml = () => `
-  <div class="stepper small">
-    <button type="button" onclick="changeGoal(-1)" aria-label="${t('minus')}">${icon('minus')}</button>
-    <span class="serif" id="goal-val">${weeklyGoal()}</span>
-    <button type="button" onclick="changeGoal(1)" aria-label="${t('plus')}">${icon('plus')}</button>
-  </div>`;
+const goalStepperHtml = () => countStepper(weeklyGoal(), 'changeGoal(-1)', 'changeGoal(1)', 'goal-val');
 function changeGoal(d) {
   const g = Math.min(7, Math.max(1, weeklyGoal() + d));
   savePrefs({ weeklyGoal: g });
@@ -102,11 +97,7 @@ function renderOnboarding() {
   if (step === 0) box.innerHTML = `${head}
     <h3>${t('obGoalTitle')}</h3>
     <p class="muted">${t('obGoalText')}</p>
-    <div class="goal-pick"><div class="stepper small">
-      <button type="button" onclick="UI.ob.goal=Math.max(1,UI.ob.goal-1);renderOnboarding()" aria-label="${t('minus')}">${icon('minus')}</button>
-      <span class="serif">${UI.ob.goal}</span>
-      <button type="button" onclick="UI.ob.goal=Math.min(7,UI.ob.goal+1);renderOnboarding()" aria-label="${t('plus')}">${icon('plus')}</button>
-    </div></div>
+    <div class="goal-pick">${countStepper(UI.ob.goal, 'UI.ob.goal=Math.max(1,UI.ob.goal-1);renderOnboarding()', 'UI.ob.goal=Math.min(7,UI.ob.goal+1);renderOnboarding()')}</div>
     <button class="btn-accent big" onclick="savePrefs({ weeklyGoal: UI.ob.goal });UI.ob.step=1;renderOnboarding()">${t('obNext')}</button>`;
   if (step === 1) {
     // Un appui : à développer (vert) ; deux : à ménager (orange) ; trois : rien

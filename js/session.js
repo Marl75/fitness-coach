@@ -16,7 +16,9 @@ function renderToday() {
   const entries = session.entries || [];
   const last = activeSessions().find(s => s.id < UI.date);
   const weekCount = sessionsInRange(isoDate(mondayOf(new Date())), today);
-  const current = entries.find(isPending);
+  // Jour passé laissé tel quel (pas modifié aujourd'hui) : un exercice resté « en cours » s'affiche comme une ligne
+  const editedToday = isToday || (session.updatedAt && isoDate(new Date(session.updatedAt)) === today);
+  const current = editedToday ? entries.find(isPending) : null;
   // Séance lancée depuis une routine : « Haut du corps · 2 / 5 »
   const eyebrow = session.routine && entries.length
     ? `${esc(session.routine.name)} · ${entries.filter(e => !isPending(e)).length} / ${entries.length}`
@@ -90,7 +92,7 @@ function currentCard(e) {
   if (e.kind !== 'sets') return cardioCard(e);
   const i = pendingIndex(e);
   const id = esc(e.id);
-  const last = historyOf(e.exId).find(h => h.date < UI.date);
+  const last = lastTimeOf(e.exId);
   const setup = setupSummary(e.setup);
   const rows = e.sets.map((s, k) => {
     const done = s.done !== false, cur = k === i;
@@ -105,13 +107,7 @@ function currentCard(e) {
       <button class="cell serif" onclick="openSet('${id}',${k})" aria-label="${t('changeNumbers')}">${s.weight ? fmtNum(s.weight) : '–'}</button>${reps}${check}</div>`;
   }).join('');
   return `<section class="now sets" aria-label="${t('currentAria')}">
-    <div class="now-head">
-      <button class="icon-btn now-close" onclick="removeCurrent('${id}')" aria-label="${t('removeEx')}">${icon('close')}</button>
-      <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">${icon('info')}</span></button>
-      <div class="now-head-text"><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
-        <p class="now-last">${esc(nowSubline(e.exId, last))}</p>
-        ${tipsChip(e.exId)}</div>
-    </div>
+    ${nowHead(e, nowSubline(e.exId, last))}
     ${setup ? `<p class="now-setup">${esc(setup)}</p>` : ''}
     ${progressionChip(e.exId, e.id)}
     <div class="sets-grid">
@@ -139,12 +135,20 @@ function nowSubline(exId, last) {
   const tg = repTarget(exId);
   return [tg && t('repTargetShort', { a: tg[0], b: tg[1] }), last && t('lastShortLower', { what: entrySummary(last.entry) })].filter(Boolean).join(' · ');
 }
+// En-tête de la carte en cours (muscu et cardio) : retirer, picto (conseils), nom, ligne « dernière fois »
+const nowHead = (e, subline) => `<div class="now-head">
+      <button class="icon-btn now-close" onclick="removeCurrent('${esc(e.id)}')" aria-label="${t('removeEx')}">${icon('close')}</button>
+      <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">${icon('info')}</span></button>
+      <div class="now-head-text"><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
+        ${subline ? `<p class="now-last">${esc(subline)}</p>` : ''}
+        ${tipsChip(e.exId)}</div>
+    </div>`;
 const tipsChip = exId => `<button class="tips-chip" onclick="openTips('${esc(exId)}')">${icon('info')}${t('tipsChip')}</button>`;
 
 // ----- Carte en cours (cardio, cours) : les champs de l'exercice, préremplis -----
 function cardioCard(e) {
   const id = esc(e.id);
-  const last = historyOf(e.exId).find(h => h.date < UI.date);
+  const last = lastTimeOf(e.exId);
   const fields = fieldsFor(e.exId, e.kind, e);
   const cells = fields.filter(k => k !== 'track').map(k => `<div class="fcell">
       <p class="flabel">${t('fs_' + k)}</p>
@@ -156,13 +160,7 @@ function cardioCard(e) {
     `<button class="chip${e.track === tr.id ? ' active' : ''}" onclick="setEntryTrack('${id}','${esc(tr.id)}')">${esc(tr.name)}</button>`).join('')}</div>` : '';
   const diff = cardioDiff(e, last && last.entry);
   return `<section class="now sets" aria-label="${t('currentAria')}">
-    <div class="now-head">
-      <button class="icon-btn now-close" onclick="removeCurrent('${id}')" aria-label="${t('removeEx')}">${icon('close')}</button>
-      <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">${icon('info')}</span></button>
-      <div class="now-head-text"><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
-        ${last ? `<p class="now-last">${esc(t('lastShort', { what: entrySummary(last.entry) }))}</p>` : ''}
-        ${tipsChip(e.exId)}</div>
-    </div>
+    ${nowHead(e, last ? t('lastShort', { what: entrySummary(last.entry) }) : '')}
     <div class="fgrid">${cells}</div>
     ${track}
     ${diff ? `<p class="progress-chip static"><span class="pc-arrow">↑</span><span>${esc(diff)}</span></p>` : ''}
