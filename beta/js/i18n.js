@@ -7,7 +7,8 @@ const I18N = {
     authSub: 'Note tes séances, suis ta régularité', tabLogin: 'Connexion', tabRegister: 'Inscription',
     email: 'E-mail', emailPh: 'ton@email.com', password: 'Mot de passe', passwordPh: '6 caractères minimum',
     login: 'Se connecter', createAccount: 'Créer mon compte', forgot: 'Mot de passe oublié ?',
-    demoAuth: 'Mode démo : n’importe quel e-mail et mot de passe fonctionnent. Les séances sont factices et restent sur cet appareil.',
+    tryDemo: 'Essayer sans compte (démo)', demoBar: 'Démo · données d’exemple', demoSignup: 'Créer mon compte',
+    demoAccount: 'Compte de démo', leaveDemo: 'Quitter la démo',
     forgotNeedEmail: 'Écris ton e-mail ci-dessus, puis touche à nouveau « Mot de passe oublié ».',
     resetSent: 'E-mail envoyé ! Regarde ta boîte de réception (et les spams).',
     'auth/invalid-email': 'Adresse e-mail invalide.', 'auth/missing-password': 'Mot de passe manquant.',
@@ -68,7 +69,7 @@ const I18N = {
     storyUp: 'De {a} à <b class="accent">{b}</b> depuis le {date}.', storyDown: 'De {a} à {b} depuis le {date}.',
     storyFlat: 'Stable à {b} depuis le {date}.', curveLater: 'La courbe apparaîtra à partir de 2 séances.',
     // Mon compte
-    demoMenu: 'Mode démo : les données sont factices et restent sur cet appareil.', weeklyGoal: 'Objectif par semaine',
+    demoMenu: 'Compte de démo : des séances d’exemple, gardées sur cet appareil et remises à neuf chaque jour. Rien n’est envoyé.', weeklyGoal: 'Objectif par semaine',
     resetDemo: 'Réinitialiser la démo', logout: 'Se déconnecter', language: 'Langue',
     // Dates et résumés
     today: 'aujourd’hui', yesterday: 'hier', daysAgo: 'il y a {n} jours', onDate: 'le {date}',
@@ -84,7 +85,8 @@ const I18N = {
     authSub: 'Log your workouts, track your consistency', tabLogin: 'Log in', tabRegister: 'Sign up',
     email: 'Email', emailPh: 'you@email.com', password: 'Password', passwordPh: 'At least 6 characters',
     login: 'Log in', createAccount: 'Create my account', forgot: 'Forgot password?',
-    demoAuth: 'Demo mode: any email and password work. Workouts are fake and stay on this device.',
+    tryDemo: 'Try it without an account (demo)', demoBar: 'Demo · sample data', demoSignup: 'Create my account',
+    demoAccount: 'Demo account', leaveDemo: 'Leave the demo',
     forgotNeedEmail: 'Type your email above, then tap “Forgot password?” again.',
     resetSent: 'Email sent! Check your inbox (and spam).',
     'auth/invalid-email': 'Invalid email address.', 'auth/missing-password': 'Missing password.',
@@ -139,7 +141,7 @@ const I18N = {
     emptyExercises: 'Your exercises will show up here after your first workout.',
     storyUp: 'From {a} to <b class="accent">{b}</b> since {date}.', storyDown: 'From {a} to {b} since {date}.',
     storyFlat: 'Steady at {b} since {date}.', curveLater: 'The chart will appear after 2 workouts.',
-    demoMenu: 'Demo mode: data is fake and stays on this device.', weeklyGoal: 'Weekly goal',
+    demoMenu: 'Demo account: sample workouts, kept on this device and refreshed every day. Nothing is sent.', weeklyGoal: 'Weekly goal',
     resetDemo: 'Reset demo', logout: 'Log out', language: 'Language',
     today: 'today', yesterday: 'yesterday', daysAgo: '{n} days ago', onDate: 'on {date}',
     didIt: 'Done', notStarted: 'Not started yet',
@@ -410,6 +412,8 @@ function applyTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  const demo = document.getElementById('try-demo'); // « Essayer sans compte » garde la langue choisie
+  if (demo) demo.href = `?demo&lang=${currentLang}`;
   const sw = document.getElementById('auth-lang');
   if (sw) sw.innerHTML = langSwitchHtml();
 }
