@@ -4,10 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Routine</title>
-<meta name="description" content="Routine — note tes séances de sport et suis ta régularité.">
+<meta name="description" content="Routine — note tes séances de sport et suis ta régularité. Essaie la démo, sans compte.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Routine">
+<meta property="og:description" content="Note tes séances de sport et suis ta régularité. Essaie la démo, sans compte.">
+<meta property="og:image" content="https://marl75.github.io/fitness-coach/screenshots/progress.png">
+<meta property="og:image:alt" content="L’onglet Suivi de Routine, en mode démo">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png?v=20261021144906">
-<link rel="apple-touch-icon" href="icon-180.png?v=20261021144906">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png?v=20261021210037">
+<link rel="apple-touch-icon" href="icon-180.png?v=20261021210037">
 <meta name="theme-color" content="#0F1115">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +21,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<link rel="stylesheet" href="css/styles.css?v=20261021144906">
+<link rel="stylesheet" href="css/styles.css?v=20261021210037">
 </head>
 <body>
 
@@ -66,9 +72,13 @@
     <button class="link" id="auth-forgot" onclick="forgotPassword()" style="display:block;margin:10px auto 0" data-i18n="forgot">Mot de passe oublié ?</button>
     <div class="lang-row" id="auth-lang"></div>
     <p class="privacy-link"><a href="privacy-policy.html" data-i18n="privacy">Confidentialité</a></p>
-    <p class="demo-note hidden" id="demo-note" data-i18n="demoAuth">Mode démo : n’importe quel e-mail et mot de passe fonctionnent. Les séances sont factices et restent sur cet appareil.</p>
+    <a class="try-demo" id="try-demo" href="?demo" data-i18n="tryDemo">Essayer sans compte (démo)</a>
   </div>
 </div>
+
+<!-- Bandeau du mode démo (pas dans la version de test, qui a le sien) -->
+<div class="demo-bar hidden" id="demo-bar"><span data-i18n="demoBar">Démo · données d’exemple</span>
+  <button onclick="leaveDemo(true)" data-i18n="demoSignup">Créer mon compte</button></div>
 
 <!-- Appli -->
 <div class="app hidden" id="app">
@@ -90,24 +100,24 @@
 <div class="backdrop hidden" id="backdrop" onclick="closeSheet()"></div>
 <div class="sheet hidden" id="sheet" role="dialog" aria-modal="true"></div>
 
-<script src="js/config.js?v=20261021144906"></script>
-<script src="js/i18n.js?v=20261021144906"></script>
-<script src="js/exercises.js?v=20261021144906"></script>
-<script src="js/util.js?v=20261021144906"></script>
-<script src="js/data.js?v=20261021144906"></script>
-<script src="js/charts.js?v=20261021144906"></script>
-<script src="js/pictos.js?v=20261021144906"></script>
-<script src="js/tips.js?v=20261021144906"></script>
-<script src="js/insights.js?v=20261021144906"></script>
-<script src="js/routines.js?v=20261021144906"></script>
-<script src="js/usage.js?v=20261021144906"></script>
-<script src="js/core.js?v=20261021144906"></script>
-<script src="js/session.js?v=20261021144906"></script>
-<script src="js/picker.js?v=20261021144906"></script>
-<script src="js/entry.js?v=20261021144906"></script>
-<script src="js/track.js?v=20261021144906"></script>
-<script src="js/account.js?v=20261021144906"></script>
-<script src="js/settings.js?v=20261021144906"></script>
-<script src="js/boot.js?v=20261021144906"></script>
+<script src="js/config.js?v=20261021210037"></script>
+<script src="js/i18n.js?v=20261021210037"></script>
+<script src="js/exercises.js?v=20261021210037"></script>
+<script src="js/util.js?v=20261021210037"></script>
+<script src="js/data.js?v=20261021210037"></script>
+<script src="js/charts.js?v=20261021210037"></script>
+<script src="js/pictos.js?v=20261021210037"></script>
+<script src="js/tips.js?v=20261021210037"></script>
+<script src="js/insights.js?v=20261021210037"></script>
+<script src="js/routines.js?v=20261021210037"></script>
+<script src="js/usage.js?v=20261021210037"></script>
+<script src="js/core.js?v=20261021210037"></script>
+<script src="js/session.js?v=20261021210037"></script>
+<script src="js/picker.js?v=20261021210037"></script>
+<script src="js/entry.js?v=20261021210037"></script>
+<script src="js/track.js?v=20261021210037"></script>
+<script src="js/account.js?v=20261021210037"></script>
+<script src="js/settings.js?v=20261021210037"></script>
+<script src="js/boot.js?v=20261021210037"></script>
 </body>
 </html>

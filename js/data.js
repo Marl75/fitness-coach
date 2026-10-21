@@ -60,13 +60,13 @@ function firebaseBackend() {
   };
 }
 
-// Mode démo : tout reste dans ce navigateur, avec des séances factices pour tester.
+// Mode démo : pas de compte, on arrive directement dans l'appli, avec un compte d'exemple bien rempli.
+// Tout reste dans ce navigateur ; les données d'exemple sont refaites chaque jour (dates à jour).
 function demoBackend() {
-  const KEY = 'fitcoach-demo-v1';
+  const KEY = 'fitcoach-demo-v2';
   let store = null;
   try { store = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-  store = store || { user: null, sessions: {}, exercises: {} };
-  store.settings = store.settings || {};
+  if (!store || store.day !== isoDate()) store = { day: isoDate(), user: { uid: 'demo', email: '' }, ...demoData() };
   let authCb = () => {}, emitCb = null;
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
   const push = () => {
@@ -75,18 +75,13 @@ function demoBackend() {
     Data.settings = Object.entries(store.settings).map(([id, d]) => ({ id, ...d }));
     if (emitCb) emitCb();
   };
-  const signIn = async email => {
-    store.user = { uid: 'demo', email };
-    if (!Object.keys(store.sessions).length) store.sessions = demoSessions();
-    save();
-    authCb(store.user);
-  };
+  save();
   return {
     onAuth(cb) { authCb = cb; setTimeout(() => cb(store.user), 0); },
-    login: signIn,
-    register: signIn,
+    login: async () => authCb(store.user),
+    register: async () => authCb(store.user),
     reset: async () => {},
-    logout: async () => { store.user = null; save(); authCb(null); },
+    logout: () => leaveDemo(),
     listen(emit) { emitCb = emit; Data.loaded = true; push(); },
     stop() { emitCb = null; },
     put(name, id, doc) { store[name][id] = doc; save(); push(); },
@@ -94,31 +89,56 @@ function demoBackend() {
     resetDemo() { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); },
   };
 }
+// Quitter la démo : la vraie appli (dans la version de test, ?real : son vrai compte)
+function leaveDemo(signup) {
+  const q = new URLSearchParams();
+  if (window.BETA) q.set('real', '');
+  if (signup) q.set('signup', '');
+  q.set('lang', currentLang);
+  location.href = location.pathname + '?' + q.toString().replace(/=(&|$)/g, '$1');
+}
 
-function demoSessions() {
-  let seed = 7;
+// Compte d'exemple : 12 semaines à environ 3 séances (bas du corps, haut du corps, cardio ou yoga),
+// des charges qui progressent, des objectifs par muscle, deux routines et un objectif de répétitions.
+function demoData() {
+  let seed = 11;
   const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const plans = [
-    [['leg-press', 'Presse à cuisses', 60], ['hipthrust', 'Hip thrust', 30], ['abduction', 'Abduction (machine)', 40]],
-    [['lat-pulldown', 'Tirage vertical', 30], ['devmili', 'Développé militaire', 8], ['curl', 'Curl biceps', 6]],
-    [['squat', 'Squat', 25], ['legcurl', 'Leg curl', 20], ['crunch', 'Crunch', 0]],
-  ];
-  const sessions = {};
   const today = new Date();
-  for (let back = 95; back >= 1; back--) {
-    if (rand() > 0.42) continue;
-    const d = addDays(today, -back);
-    const progress = (95 - back) / 95;
-    const plan = plans[back % 3];
-    const entries = plan.map(([exId, name, base], i) => ({
-      id: `e${back}-${i}`, exId, name, kind: 'sets', note: '',
-      sets: [0, 1, 2].map(() => ({ done: true, reps: base ? 10 : 20, weight: base ? Math.round((base * (1 + progress * 0.3)) / 2.5) * 2.5 : null })),
-    }));
-    if (rand() > 0.4) entries.push({ id: `e${back}-c`, exId: 'tapis', name: 'Tapis de course', kind: 'cardio', note: '', duration: 15 + Math.round(rand() * 3) * 5, distance: null });
-    if (rand() > 0.85) entries.splice(0, entries.length, { id: `e${back}-y`, exId: 'yoga', name: 'Yoga', kind: 'time', note: 'Cours du dimanche', duration: 60 });
-    sessions[isoDate(d)] = { entries, createdAt: d.getTime(), updatedAt: d.getTime() };
+  const lower = [['leg-press', 'Presse à cuisses', 70, 10], ['hipthrust', 'Hip thrust', 40, 10], ['abduction', 'Abduction (machine)', 35, 12], ['legcurl', 'Leg curl', 20, 12]];
+  const upper = [['lat-pulldown', 'Tirage vertical', 32.5, 10], ['tirage-horizontal', 'Tirage horizontal (rowing assis)', 30, 10], ['devmili', 'Développé militaire', 8, 10], ['curl', 'Curl biceps', 6, 12]];
+  const sets = ([exId, name, base, reps], progress, k) => ({
+    id: `e${k}-${exId}`, exId, name, kind: 'sets', note: '',
+    sets: [0, 1, 2].map(i => ({ done: true, reps: i === 2 && rand() > 0.6 ? reps - 2 : reps, weight: Math.round(base * (1 + progress * 0.25) / 2.5) * 2.5 || base })),
+  });
+  const sessions = {};
+  let k = 0;
+  // Lundi, mercredi, samedi, avec quelques séances sautées ; jamais aujourd'hui (la séance du jour reste à faire)
+  for (let back = 84; back >= 1; back--) {
+    const d = addDays(today, -back), dow = (d.getDay() + 6) % 7;
+    if (![0, 2, 5].includes(dow) || (back > 7 && rand() > 0.82)) continue;
+    const progress = (84 - back) / 84;
+    let entries;
+    if (dow === 0) entries = lower.map(x => sets(x, progress, k));
+    else if (dow === 2) entries = upper.map(x => sets(x, progress, k));
+    else entries = rand() > 0.35
+      ? [{ id: `e${k}-c`, exId: 'marche-inclinee', name: 'Marche inclinée', kind: 'cardio', note: '', duration: 30 + Math.round(progress * 3) * 5, speed: 5, incline: 8 + Math.round(progress * 4), carry: null }]
+      : [{ id: `e${k}-y`, exId: 'yoga', name: 'Yoga', kind: 'time', note: 'Cours du samedi', duration: 60 }];
+    if (dow !== 5 && rand() > 0.5) entries.push({ id: `e${k}-t`, exId: 'tapis', name: 'Course sur tapis', kind: 'cardio', note: '', duration: 15 + Math.round(rand() * 2) * 5, distance: null });
+    const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 18, 30).getTime();
+    sessions[isoDate(d)] = { entries, createdAt: at, updatedAt: at };
+    k++;
   }
-  return sessions;
+  const settings = { prefs: {
+    pseudo: 'Démo', weeklyGoal: 3, onboarded: true, setupHidden: true,
+    goals: { glutes: 'up', upperback: 'up', lats: 'up', traps: 'down' },
+    favorites: ['hipthrust', 'lat-pulldown'],
+    repTargets: { hipthrust: [8, 12] },
+    routines: [
+      { id: 'r-bas', name: 'Bas du corps', items: lower.map(x => x[0]) },
+      { id: 'r-haut', name: 'Haut du corps', items: upper.map(x => x[0]) },
+    ],
+  } };
+  return { sessions, exercises: {}, settings };
 }
 
 // ===== API utilisée par l'appli =====

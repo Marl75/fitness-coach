@@ -205,6 +205,13 @@
     const m = a['2026-03'];
     ok(m && m.days === 1 && m.exercises === 2 && m.sets === 2 && m.cardioMin === 30, 'activité mal calculée : ' + JSON.stringify(m));
   });
+  await step('Démo : bandeau, compte, quitter', async () => {
+    ok(window.BETA || !$('#demo-bar').classList.contains('hidden'), 'bandeau démo absent');
+    openMenu(); ok($('#sheet').textContent.includes(t('leaveDemo')) && $('#sheet').textContent.includes(t('demoAccount')), 'compte de démo mal affiché');
+    closeSheet(); await wait();
+    const d = demoData();
+    ok(Object.keys(d.sessions).length > 20 && !d.sessions[isoDate()] && d.settings.prefs.routines.length === 2, 'données d’exemple incomplètes');
+  });
   await step('Lien confidentialité', async () => {
     openMenu(); ok($('#sheet a.privacy-link'), 'lien absent du compte'); closeSheet(); await wait();
   });

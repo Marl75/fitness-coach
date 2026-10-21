@@ -2,7 +2,7 @@
 
 **Live app: [marl75.github.io/fitness-coach](https://marl75.github.io/fitness-coach/)** · available in English and French
 
-**Try it without an account: [demo mode](https://marl75.github.io/fitness-coach/?demo&lang=en)** (any email and password work; fake data, kept in your browser)
+**Try it without an account: [demo](https://marl75.github.io/fitness-coach/?demo&lang=en)** (opens straight into a sample account with 12 weeks of workouts, goals and routines; kept in your browser, refreshed every day, nothing is sent). French: [démo](https://marl75.github.io/fitness-coach/?demo&lang=fr)
 
 <img src="screenshots/progress.png" alt="Routine progress screen, demo mode" width="280">
 
@@ -38,7 +38,7 @@ A small progressive web app to log workouts and keep track of your consistency.
 - Plain HTML, CSS and JavaScript, no build step
 - [Firebase](https://firebase.google.com/) Authentication (email and password) and Firestore; configuration in `js/config.js`, security rules in `firestore.rules`
 - Language follows the browser; `?lang=en` or `?lang=fr` in the address forces it
-- Without a configuration, or with `?demo` in the address, the app runs in demo mode with fake data kept in the browser
+- Without a configuration, or with `?demo` in the address, the app opens in demo mode on a sample account kept in the browser (`demoData()` in `js/data.js`); the login screen links to it, and `?signup` opens the sign-up tab
 
 ## Development
 
