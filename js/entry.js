@@ -9,7 +9,7 @@ function openSet(entryId, idx) {
   // Une série prévue reste prévue : on ne fait que changer ses chiffres (la coche du tableau la valide)
   const keep = set.done === false;
   setDraft = { entryId, idx, reps: set.reps, weight: set.weight || 0, wasDone: set.done !== false, keep };
-  const last = historyOf(e.exId).find(h => h.date < UI.date);
+  const last = lastTimeOf(e.exId);
   const lastSets = last ? doneSets(last.entry) : [];
   const prev = lastSets[Math.min(idx, lastSets.length - 1)];
   const counter = (id, label, value, step, set, prevText) => `
@@ -152,7 +152,7 @@ function openEntry(entryId) {
   if (e.kind !== 'sets') {
     draft = JSON.parse(JSON.stringify({ ...e, entryId: e.id }));
     draft.fields = fieldsFor(e.exId, e.kind, e);
-    openTimeEditor(historyOf(e.exId).find(h => h.date < UI.date));
+    openTimeEditor(lastTimeOf(e.exId));
     return;
   }
   const id = esc(e.id);

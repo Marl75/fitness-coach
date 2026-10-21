@@ -153,7 +153,7 @@ function clearRepTarget(exId) {
 function repTargetHtml(exId, justSet) {
   const tg = repTarget(exId) || (justSet ? [8, 12] : null);
   if (!tg) return `<button class="chip dashed rep-set" onclick="stepRepTarget('${esc(exId)}',0,0)">${icon('plus')}${t('repTargetAdd')}</button>`;
-  const st = i => `<div class="stepper small"><button type="button" onclick="stepRepTarget('${esc(exId)}',${i},-1)" aria-label="${t('minus')}">${icon('minus')}</button><span class="serif">${tg[i]}</span><button type="button" onclick="stepRepTarget('${esc(exId)}',${i},1)" aria-label="${t('plus')}">${icon('plus')}</button></div>`;
+  const st = i => countStepper(tg[i], `stepRepTarget('${esc(exId)}',${i},-1)`, `stepRepTarget('${esc(exId)}',${i},1)`);
   return `<div class="rep-target"><p class="sub-label">${t('repTarget')}</p>
     <div class="rep-row">${st(0)}<span class="muted">${t('to')}</span>${st(1)}<button class="link" onclick="clearRepTarget('${esc(exId)}')">${t('remove')}</button></div>
     <p class="muted small">${t('repTargetHint', { b: tg[1], a: tg[0] })}</p></div>`;

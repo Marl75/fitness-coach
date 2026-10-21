@@ -18,6 +18,9 @@
   const today = () => sessionOf(isoDate()) || { entries: [] };
   const entryOf = exId => today().entries.find(e => e.exId === exId);
 
+  // Le test vérifie des noms français puis anglais : il part du français et remet la langue d'origine à la fin
+  const startLang = currentLang;
+  if (currentLang !== 'fr') toggleLanguage();
   await step('Connexion démo', async () => {
     if (!Data.user) await Backend.login('test@exemple.test');
     await wait(300);
@@ -205,6 +208,22 @@
     const m = a['2026-03'];
     ok(m && m.days === 1 && m.exercises === 2 && m.sets === 2 && m.cardioMin === 30, 'activité mal calculée : ' + JSON.stringify(m));
   });
+  await step('Panneau rouvert juste après une fermeture', async () => {
+    openMenu(); closeSheet(); openWeeklyGoal(); await wait(400);
+    ok(!$('#sheet').classList.contains('hidden'), 'panneau refermé tout seul');
+    closeSheet(); await wait(300);
+  });
+  await step('Jour passé laissé « en cours »', async () => {
+    const d = isoDate(addDays(new Date(), -3)), old = Date.now() - 3 * 86400000;
+    const before = sessionOf(d);
+    Backend.put('sessions', d, { entries: [{ id: 'sm-old', exId: 'tapis', name: 'Course sur tapis', kind: 'cardio', note: '', pending: true, duration: 20 }], createdAt: old, updatedAt: old });
+    goToDay(d); await wait();
+    ok(!$('.now'), 'carte « en cours » sur un jour passé');
+    pickExercise('curl'); await wait(200);
+    ok($('.now'), 'pas de carte en cours en notant un jour passé');
+    if (before) { const { id, ...doc } = before; Backend.put('sessions', d, doc); } else Backend.del('sessions', d);
+    goToDay(isoDate()); await wait();
+  });
   await step('Démo : bandeau, compte, quitter', async () => {
     ok(window.BETA || !$('#demo-bar').classList.contains('hidden'), 'bandeau démo absent');
     openMenu(); ok($('#sheet').textContent.includes(t('leaveDemo')) && $('#sheet').textContent.includes(t('demoAccount')), 'compte de démo mal affiché');
@@ -217,6 +236,7 @@
   });
   await step('Aucune erreur JavaScript', async () => { ok(!errors.length, errors.join(' | ')); });
 
+  if (currentLang !== startLang) toggleLanguage();
   const failed = results.filter(r => !r.ok);
   window.SMOKE_RESULT = { passed: results.length - failed.length, total: results.length, failed };
   const box = document.createElement('div');

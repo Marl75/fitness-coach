@@ -5,8 +5,6 @@
 const UI = {
   tab: 'today',
   date: isoDate(),     // jour affiché dans l'onglet Séance
-  month: null,         // mois affiché dans le calendrier (1er du mois)
-  selDay: null,        // jour touché dans le calendrier
   search: '',
   showHidden: false,   // section « Masqués » dépliée
 };
@@ -40,6 +38,8 @@ function recentExerciseIds(limit) {
 function sessionsInRange(from, to) {
   return activeSessions().filter(s => s.id >= from && s.id <= to).length;
 }
+// La dernière fois qu'un exercice a été fait avant le jour affiché
+const lastTimeOf = exId => historyOf(exId).find(h => h.date < UI.date);
 const maxWeight = e => Math.max(0, ...doneSets(e).map(s => s.weight || 0));
 
 // Modifie l'exercice d'une séance puis enregistre (supprime l'exercice s'il est vide)
@@ -55,6 +55,13 @@ function updateEntry(date, entryId, fn) {
 
 // Ce que change un appui sur + ou − pour le poids (une plaque)
 const STEP = 2.5;
+
+// Petit compteur « − valeur + » (objectif par semaine, objectif de répétitions…)
+const countStepper = (value, minus, plus, id = '') => `<div class="stepper small">
+    <button type="button" onclick="${minus}" aria-label="${t('minus')}">${icon('minus')}</button>
+    <span class="serif"${id ? ` id="${id}"` : ''}>${value}</span>
+    <button type="button" onclick="${plus}" aria-label="${t('plus')}">${icon('plus')}</button>
+  </div>`;
 
 // ===== NAVIGATION =====
 function setTab(tab) {
@@ -111,10 +118,15 @@ function hideSheet() {
   document.body.style.overflow = '';
   sheetRefresh = null;
 }
+// Le retour lancé par closeSheet arrive un instant plus tard : il ne doit pas fermer un panneau rouvert entre-temps
+let ownBack = false;
 function closeSheet() {
   if ($('#sheet').classList.contains('hidden')) return;
   hideSheet();
-  if (history.state && history.state.sheet) history.back();
+  if (history.state && history.state.sheet) { ownBack = true; history.back(); }
 }
-window.addEventListener('popstate', () => { if (!$('#sheet').classList.contains('hidden')) hideSheet(); });
+window.addEventListener('popstate', () => {
+  if (ownBack) { ownBack = false; return; }
+  if (!$('#sheet').classList.contains('hidden')) hideSheet();
+});
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
