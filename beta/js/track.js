@@ -51,7 +51,7 @@ function progressCardHtml() {
     const vals = hist.slice(0, 10).reverse().map(h => metric.get(h.entry)).filter(v => v !== null);
     const a = vals[0], b = vals[vals.length - 1];
     const pct = vals.length >= 2 && a > 0 ? Math.round(100 * (b - a) / a) : null;
-    return `<button class="prog-line" onclick="openExercise('${esc(id)}')">${pictoTile(exOfEntry(hist[0].entry), 'small')}
+    return `<button class="prog-line" onclick="openExercise(${jsq(id)})">${pictoTile(exOfEntry(hist[0].entry), 'small')}
       <span class="prog-name">${esc(entryName(hist[0].entry))}<span class="prog-sub">${esc(metric.fmt(b ?? 0))}</span></span>
       ${sparkline(vals)}
       <span class="prog-pct${pct > 0 ? ' up' : pct < 0 ? ' down' : ''}">${pct === null ? '' : `${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct)} %`}</span>
@@ -164,7 +164,7 @@ function exerciseListHtml() {
   return `<div class="ex-list">${[...byEx.values()].map(x => {
     const metric = metricFor(x.kind, historyOf(x.id));
     const v = metric.get(x.entry);
-    return `<button class="row flat" onclick="openExercise('${esc(x.id)}')">${pictoTile(exOfEntry(x.entry))}
+    return `<button class="row flat" onclick="openExercise(${jsq(x.id)})">${pictoTile(exOfEntry(x.entry))}
       <span class="row-main"><span class="row-name">${esc(entryName(x.entry))}</span>${enLine(entryEn(x.entry))}
       <span class="row-sub">${tn('times', x.count, { when: relDay(x.last) })}</span></span>
       <span class="row-val">${v ? metric.fmt(v) : ''}</span>${icon('chev')}
@@ -201,8 +201,8 @@ function openExercise(exId) {
       <li><span class="h-date">${esc(cap(fmtDay(h.date)))}</span><span>${esc(entrySummary(h.entry))}</span>
       ${setupSummary(h.entry.setup) ? `<span class="h-setup">${esc(setupSummary(h.entry.setup))}</span>` : ''}
       ${h.entry.note ? `<span class="h-note">${esc(h.entry.note)}</span>` : ''}</li>`).join('')}</ul>
-    <button class="btn-outline" onclick="openTips('${esc(exId)}')">${t('tipsLink')}</button>
-    ${(findExercise(exId) || {}).custom ? `<button class="btn-outline" onclick="openAttach('${esc(exId)}')">${t('attachPick')}</button>` : ''}
-    ${findExercise(exId) ? `<button class="btn-outline" onclick="openVariant('${esc(exId)}')">${icon('plus')}${t('variant')}</button>` : ''}`);
+    <button class="btn-outline" onclick="openTips(${jsq(exId)})">${t('tipsLink')}</button>
+    ${(findExercise(exId) || {}).custom ? `<button class="btn-outline" onclick="openAttach(${jsq(exId)})">${t('attachPick')}</button>` : ''}
+    ${findExercise(exId) ? `<button class="btn-outline" onclick="openVariant(${jsq(exId)})">${icon('plus')}${t('variant')}</button>` : ''}`);
   if (pts.length >= 2) lineChart($('#ex-chart'), pts);
 }

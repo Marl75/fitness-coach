@@ -16,7 +16,7 @@ function routineCardsHtml() {
         <span class="routine-sub">${esc([tn('exercises', exs.length), r.lastUsed && t('lastUsed', { when: relDay(r.lastUsed) })].filter(Boolean).join(' · '))}</span>
         <span class="routine-ex">${exs.slice(0, 4).map(ex => pictoTile(ex, 'tiny')).join('')}${exs.length > 4 ? `<span class="picto tiny more">+${exs.length - 4}</span>` : ''}</span>
       </div>
-      <button class="btn-accent" onclick="launchRoutine('${esc(r.id)}')">${t('launch')}</button>
+      <button class="btn-accent" onclick="launchRoutine(${jsq(r.id)})">${t('launch')}</button>
     </div>`;
   }).join('')}</div>`;
 }
@@ -93,10 +93,10 @@ function renderRoutinesList() {
       <span class="routine-name">${esc(r.name)}</span>
       <p class="muted small">${esc(r.items.map(id => (findExercise(id) ? exLabel(findExercise(id)) : '')).filter(Boolean).join(' · '))}</p>
       <div class="myex-actions">
-        <button class="chip" onclick="openRoutineEditor('${esc(r.id)}')">${t('edit')}</button>
+        <button class="chip" onclick="openRoutineEditor(${jsq(r.id)})">${t('edit')}</button>
         <button class="chip" onclick="moveRoutine(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="${t('moveUp')}">${icon('up')}</button>
         <button class="chip" onclick="moveRoutine(${i},1)" ${i === list.length - 1 ? 'disabled' : ''} aria-label="${t('moveDown')}">${icon('down')}</button>
-        <button class="chip" onclick="deleteRoutine('${esc(r.id)}')">${t('delete')}</button>
+        <button class="chip" onclick="deleteRoutine(${jsq(r.id)})">${t('delete')}</button>
       </div>
     </div>`).join('') : `<p class="muted small empty-list">${t('routinesEmpty')}</p>`;
 }
@@ -145,7 +145,7 @@ function renderRoutineEditor() {
       .sort((a, b) => (isFav(b.id) - isFav(a.id)) || byName(a, b)).slice(0, q ? 30 : 15);
     add = `<div class="rd-add">
       <input class="input" type="search" id="rd-search" placeholder="${t('search')}" value="${esc(d.q)}" oninput="UI.rDraft.q=this.value;renderRoutineEditor();const i=$('#rd-search');i.focus();i.setSelectionRange(i.value.length,i.value.length)" aria-label="${t('searchAria')}">
-      ${pool.map(e => `<button class="rd-pick" onclick="rdAdd('${esc(e.id)}')">${pictoTile(e, 'small')}<span class="pick-name">${esc(exLabel(e))}${isFav(e.id) ? ` <span class="fav-mark">${icon('star')}</span>` : ''}</span>${icon('plus')}</button>`).join('')}
+      ${pool.map(e => `<button class="rd-pick" onclick="rdAdd(${jsq(e.id)})">${pictoTile(e, 'small')}<span class="pick-name">${esc(exLabel(e))}${isFav(e.id) ? ` <span class="fav-mark">${icon('star')}</span>` : ''}</span>${icon('plus')}</button>`).join('')}
       ${!q ? `<p class="muted small">${t('rdSearchMore')}</p>` : ''}
     </div>`;
   }

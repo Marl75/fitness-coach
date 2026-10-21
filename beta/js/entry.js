@@ -155,7 +155,7 @@ function openEntry(entryId) {
     openTimeEditor(lastTimeOf(e.exId));
     return;
   }
-  const id = esc(e.id);
+  const id = jsq(e.id);
   setupDraft = { exId: e.exId, setup: JSON.parse(JSON.stringify(e.setup || {})) };
   openSheet(`
     <div class="sheet-head">
@@ -163,20 +163,20 @@ function openEntry(entryId) {
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <div class="set-list">${e.sets.map((s, i) => `
-      <button class="set-line" onclick="openSet('${id}',${i})">
+      <button class="set-line" onclick="openSet(${id},${i})">
         <span class="set-n">${i + 1}</span>
         <span class="set-val">${s.reps ?? '–'} × ${s.weight ? fmtNum(s.weight) + ' kg' : t('noWeight')}</span>
         ${s.done === false ? `<span class="muted small">${t('planned')}</span>` : `<span class="row-mark">${icon('check')}</span>`}
       </button>`).join('')}</div>
-    <button class="btn-outline" onclick="addPlannedSet('${id}');closeSheet()">${icon('plus')}${t('addSet')}</button>
+    <button class="btn-outline" onclick="addPlannedSet(${id});closeSheet()">${icon('plus')}${t('addSet')}</button>
     <div id="rep-target">${repTargetHtml(e.exId)}</div>
     <div class="setup-box" id="setup-box"></div>
     <label class="field" style="margin-top:16px"><span>${t('note')}</span>
       <textarea class="input" id="entry-note" rows="2" maxlength="300" placeholder="${t('notePh')}">${esc(e.note || '')}</textarea></label>
-    <button class="btn-accent big" onclick="saveEntryDetails('${id}')">${t('save')}</button>
-    <button class="link center-link" onclick="tipsFromEntry('${id}')">${t('tipsLink')}</button>
-    <button class="link center-link" onclick="openVariant('${esc(e.exId)}')">${t('variant')}</button>
-    <button class="link-danger" onclick="deleteEntry('${id}')">${t('deleteExercise')}</button>`);
+    <button class="btn-accent big" onclick="saveEntryDetails(${id})">${t('save')}</button>
+    <button class="link center-link" onclick="tipsFromEntry(${id})">${t('tipsLink')}</button>
+    <button class="link center-link" onclick="openVariant(${jsq(e.exId)})">${t('variant')}</button>
+    <button class="link-danger" onclick="deleteEntry(${id})">${t('deleteExercise')}</button>`);
   renderSetup();
 }
 function saveEntryDetails(entryId) {
@@ -233,7 +233,7 @@ function openTips(exId, back) {
       <p>${esc(spare.length ? spare.map(s => s[currentLang] || s.fr).join(' ') : note)}</p></div>` : ''}
     ${srcs.length ? `<p class="tips-src">${t(srcs.length > 1 ? 'sources' : 'source')} : ${srcs.map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join(', ')}</p>` : ''}
     <label class="field tips-notes"><span>${t('exNotes')}</span>
-      <textarea class="input" id="ex-notes" rows="2" maxlength="500" placeholder="${t('exNotesPh')}" onchange="saveExNote('${esc(exId)}', this.value)">${esc(exNote(exId))}</textarea></label>
+      <textarea class="input" id="ex-notes" rows="2" maxlength="500" placeholder="${t('exNotesPh')}" onchange="saveExNote(${jsq(exId)}, this.value)">${esc(exNote(exId))}</textarea></label>
     <p class="muted small hint">${t('exNotesHint')}</p>`);
 }
 function closeTips() {
@@ -281,8 +281,8 @@ function openTimeEditor(last) {
       <textarea class="input" id="draft-note" rows="2" maxlength="300" placeholder="${t('notePh')}">${esc(draft.note || '')}</textarea></label>
     <button class="btn-accent big" onclick="saveDraft()">${isNew ? t('done') : t('save')}</button>
     <button class="link center-link" onclick="tipsFromEditor()">${t('tipsLink')}</button>
-    <button class="link center-link" onclick="openVariant('${esc(draft.exId)}')">${t('variant')}</button>
-    ${isNew ? '' : `<button class="link-danger" onclick="deleteEntry('${esc(draft.entryId)}')">${t('deleteExercise')}</button>`}`);
+    <button class="link center-link" onclick="openVariant(${jsq(draft.exId)})">${t('variant')}</button>
+    ${isNew ? '' : `<button class="link-danger" onclick="deleteEntry(${jsq(draft.entryId)})">${t('deleteExercise')}</button>`}`);
   renderEditorBody();
 }
 function fieldHtml(k) {
@@ -330,7 +330,7 @@ function setField(field, v) {
 function trackFieldHtml() {
   const list = tracks();
   return `<div class="solo"><span>${t('fld_track')}</span>
-    <div class="chips wrap">${list.map(tr => `<button class="chip${draft.track === tr.id ? ' active' : ''}" aria-pressed="${draft.track === tr.id}" onclick="pickTrack('${esc(tr.id)}')">${esc(tr.name)}${tr.length ? ` · ${t('trackLen', { v: fmtNum(tr.length) })}` : ''}</button>`).join('')}
+    <div class="chips wrap">${list.map(tr => `<button class="chip${draft.track === tr.id ? ' active' : ''}" aria-pressed="${draft.track === tr.id}" onclick="pickTrack(${jsq(tr.id)})">${esc(tr.name)}${tr.length ? ` · ${t('trackLen', { v: fmtNum(tr.length) })}` : ''}</button>`).join('')}
       ${UI.newTrack ? '' : `<button class="chip dashed" onclick="UI.newTrack=true;renderEditorBody();$('#track-name').focus()">${icon('plus')}${t('newTrack')}</button>`}</div>
     ${!list.length && !UI.newTrack ? `<p class="muted small hint">${t('noTrack')}</p>` : ''}
     ${UI.newTrack ? `<div class="track-form">

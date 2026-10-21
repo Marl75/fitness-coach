@@ -107,7 +107,7 @@ function openMuscle(m) {
       <div class="pick-main">${pictoTile(ex, 'small')}<span class="pick-text"><span class="pick-name">${esc(exLabel(ex))}${isFav(ex.id) ? ` <span class="fav-mark">${icon('star')}</span>` : ''}</span>${enLine(exEn(ex))}
         ${note ? `<span class="pick-warn">${esc(note)}</span>` : ''}
         <span class="pick-sub">${esc(last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : t('neverDone'))}</span></span></div>
-      <button class="add-btn" onclick="addFromMuscle('${esc(ex.id)}')" aria-label="${esc(t('addToSession'))} : ${esc(exLabel(ex))}">${icon('plus')}</button>
+      <button class="add-btn" onclick="addFromMuscle(${jsq(ex.id)})" aria-label="${esc(t('addToSession'))} : ${esc(exLabel(ex))}">${icon('plus')}</button>
     </div>`;
   };
   const week = (detail[m] || []).map(d => `<div class="day-line"><span>${esc(cap(fmtDay(d.date)))} · ${esc(entryName(d.entry))}</span><span>${esc(entrySummary(d.entry))}</span></div>`).join('');
@@ -152,10 +152,10 @@ function clearRepTarget(exId) {
 }
 function repTargetHtml(exId, justSet) {
   const tg = repTarget(exId) || (justSet ? [8, 12] : null);
-  if (!tg) return `<button class="chip dashed rep-set" onclick="stepRepTarget('${esc(exId)}',0,0)">${icon('plus')}${t('repTargetAdd')}</button>`;
+  if (!tg) return `<button class="chip dashed rep-set" onclick="stepRepTarget(${jsq(exId)},0,0)">${icon('plus')}${t('repTargetAdd')}</button>`;
   const st = i => countStepper(tg[i], `stepRepTarget('${esc(exId)}',${i},-1)`, `stepRepTarget('${esc(exId)}',${i},1)`);
   return `<div class="rep-target"><p class="sub-label">${t('repTarget')}</p>
-    <div class="rep-row">${st(0)}<span class="muted">${t('to')}</span>${st(1)}<button class="link" onclick="clearRepTarget('${esc(exId)}')">${t('remove')}</button></div>
+    <div class="rep-row">${st(0)}<span class="muted">${t('to')}</span>${st(1)}<button class="link" onclick="clearRepTarget(${jsq(exId)})">${t('remove')}</button></div>
     <p class="muted small">${t('repTargetHint', { b: tg[1], a: tg[0] })}</p></div>`;
 }
 function progressionFor(exId, beforeDate) {
@@ -187,7 +187,7 @@ function progressionFor(exId, beforeDate) {
 function progressionChip(exId, entryId) {
   const p = progressionFor(exId, UI.date);
   if (!p) return '';
-  return `<button class="progress-chip" onclick="applyWeight('${esc(entryId)}', ${p.lo})">
+  return `<button class="progress-chip" onclick="applyWeight(${jsq(entryId)}, ${p.lo})">
     <span class="pc-arrow">↑</span><span class="pc-text">${t(p.target ? 'progressChipTarget' : 'progressChip', { w: fmtNum(p.lo) })}</span><span class="pc-act">${t('apply')}</span></button>`;
 }
 // Sur la page de l'exercice : le détail et la source
@@ -233,11 +233,11 @@ function renderMyExercises() {
         <span class="pick-sub">${tn('workouts', sessionsUsing(ex.id))}</span></div></div>
       ${sim ? `<p class="small myex-sim">${t('looksLike')} <b>${esc(exLabel(sim))}</b></p>` : ''}
       <div class="myex-actions">
-        ${sim ? `<button class="btn-accent" onclick="confirmAttach('${esc(ex.id)}','${esc(sim.id)}')">${t('attachTo', { name: esc(exLabel(sim)) })}</button>` : ''}
-        <button class="chip" onclick="openAttach('${esc(ex.id)}')">${sim ? t('attachOther') : t('attachPick')}</button>
-        <button class="chip${open ? ' active' : ''}" onclick="UI.editMuscles=${open ? 'null' : `'${esc(ex.id)}'`};renderMyExercises()">${t('editMuscles')}</button>
+        ${sim ? `<button class="btn-accent" onclick="confirmAttach(${jsq(ex.id)},${jsq(sim.id)})">${t('attachTo', { name: esc(exLabel(sim)) })}</button>` : ''}
+        <button class="chip" onclick="openAttach(${jsq(ex.id)})">${sim ? t('attachOther') : t('attachPick')}</button>
+        <button class="chip${open ? ' active' : ''}" onclick="UI.editMuscles=${open ? 'null' : `${jsq(ex.id)}`};renderMyExercises()">${t('editMuscles')}</button>
       </div>
-      ${open ? `<div class="chips wrap">${MUSCLES.map(m => `<button class="chip${(ex.muscles || []).includes(m) ? ' active' : ''}" aria-pressed="${(ex.muscles || []).includes(m)}" onclick="toggleCustomMuscle('${esc(ex.id)}','${m}')">${t('m_' + m)}</button>`).join('')}</div>` : ''}
+      ${open ? `<div class="chips wrap">${MUSCLES.map(m => `<button class="chip${(ex.muscles || []).includes(m) ? ' active' : ''}" aria-pressed="${(ex.muscles || []).includes(m)}" onclick="toggleCustomMuscle(${jsq(ex.id)},'${m}')">${t('m_' + m)}</button>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -266,7 +266,7 @@ function renderAttachList() {
   const ex = findExercise(UI.attachFor);
   const q = simple(UI.attachQ || '');
   const list = CATALOG.filter(e => e.kind === ex.kind && (!q || [e.name, e.en, ...(e.aliases || [])].some(n => simple(n).includes(q)))).sort(byName);
-  box.innerHTML = list.map(e => `<div class="pick"><button class="pick-main" onclick="confirmAttach('${esc(ex.id)}','${esc(e.id)}')">${pictoTile(e)}<span class="pick-text"><span class="pick-name">${esc(exLabel(e))}</span>${enLine(exEn(e))}<span class="pick-musc">${esc(musclesLine(e))}</span></span></button></div>`).join('')
+  box.innerHTML = list.map(e => `<div class="pick"><button class="pick-main" onclick="confirmAttach(${jsq(ex.id)},${jsq(e.id)})">${pictoTile(e)}<span class="pick-text"><span class="pick-name">${esc(exLabel(e))}</span>${enLine(exEn(e))}<span class="pick-musc">${esc(musclesLine(e))}</span></span></button></div>`).join('')
     || `<p class="muted small empty-list">${t('noMatch', { q: esc(UI.attachQ) })}</p>`;
 }
 function confirmAttach(customId, catId) {

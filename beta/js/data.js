@@ -32,7 +32,12 @@ function firebaseBackend() {
     login: (email, pw) => auth.signInWithEmailAndPassword(email, pw),
     register: (email, pw) => auth.createUserWithEmailAndPassword(email, pw),
     reset: email => auth.sendPasswordResetEmail(email),
-    logout: () => auth.signOut(),
+    // Appareil partagé : à la déconnexion, on efface aussi la copie des données gardée pour le hors connexion
+    logout: async () => {
+      await auth.signOut();
+      try { await db.terminate(); await db.clearPersistence(); } catch (e) { console.warn('Copie locale non effacée :', e); }
+      location.reload();
+    },
     listen(emit) {
       const pending = { sessions: false, exercises: false, settings: false };
       const fromServer = { sessions: false, exercises: false, settings: false };
