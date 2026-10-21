@@ -64,7 +64,7 @@ function quickFavs() {
   const favs = favorites().map(findExercise);
   if (!favs.length) return '';
   return `<div class="quick"><p class="label">${t('favorites')}</p><div class="chips">${favs.map(ex =>
-    `<button class="chip" onclick="pickExercise('${esc(ex.id)}')">${icon('star')}${esc(exLabel(ex))}</button>`).join('')}</div></div>`;
+    `<button class="chip" onclick="pickExercise(${jsq(ex.id)})">${icon('star')}${esc(exLabel(ex))}</button>`).join('')}</div></div>`;
 }
 
 function sessionFoot(entries) {
@@ -80,7 +80,7 @@ function entryRow(e) {
     : (pending ? t('plannedShort') : entrySummary(e));
   const mark = !pending ? `<span class="row-mark">${icon('check')}</span>` : icon('chev');
   const setup = setupSummary(e.setup);
-  return `<button class="row" onclick="openEntry('${esc(e.id)}')">${pictoTile(exOfEntry(e))}
+  return `<button class="row" onclick="openEntry(${jsq(e.id)})">${pictoTile(exOfEntry(e))}
     <span class="row-main"><span class="row-name">${esc(entryName(e))}</span>${enLine(entryEn(e))}<span class="row-sub">${esc(sub)}</span>
     ${setup ? `<span class="row-setup">${esc(setup)}</span>` : ''}
     ${e.note ? `<span class="row-note">${esc(e.note)}</span>` : ''}</span>${mark}</button>`;
@@ -91,20 +91,20 @@ function entryRow(e) {
 function currentCard(e) {
   if (e.kind !== 'sets') return cardioCard(e);
   const i = pendingIndex(e);
-  const id = esc(e.id);
+  const id = jsq(e.id);
   const last = lastTimeOf(e.exId);
   const setup = setupSummary(e.setup);
   const rows = e.sets.map((s, k) => {
     const done = s.done !== false, cur = k === i;
     const n = k + 1;
     const reps = cur
-      ? `<div class="mini-step"><button onclick="stepSetReps('${id}',${k},-1)" aria-label="${t('repMinus')}">${icon('minus')}</button><span class="serif">${s.reps ?? '–'}</span><button onclick="stepSetReps('${id}',${k},1)" aria-label="${t('repPlus')}">${icon('plus')}</button></div>`
-      : `<button class="cell serif" onclick="openSet('${id}',${k})" aria-label="${t('changeNumbers')}">${s.reps ?? '–'}</button>`;
+      ? `<div class="mini-step"><button onclick="stepSetReps(${id},${k},-1)" aria-label="${t('repMinus')}">${icon('minus')}</button><span class="serif">${s.reps ?? '–'}</span><button onclick="stepSetReps(${id},${k},1)" aria-label="${t('repPlus')}">${icon('plus')}</button></div>`
+      : `<button class="cell serif" onclick="openSet(${id},${k})" aria-label="${t('changeNumbers')}">${s.reps ?? '–'}</button>`;
     const check = done
-      ? `<button class="chk on" onclick="undoSet('${id}',${k})" aria-label="${t('setUndoAria', { n })}">${icon('check')}</button>`
-      : `<button class="chk${cur ? ' cur' : ''}" onclick="finishSetAt('${id}',${k})" aria-label="${t('setCheckAria', { n })}">${icon('check')}</button>`;
+      ? `<button class="chk on" onclick="undoSet(${id},${k})" aria-label="${t('setUndoAria', { n })}">${icon('check')}</button>`
+      : `<button class="chk${cur ? ' cur' : ''}" onclick="finishSetAt(${id},${k})" aria-label="${t('setCheckAria', { n })}">${icon('check')}</button>`;
     return `<div class="srow${cur ? ' cur' : ''}${!done && !cur ? ' later' : ''}"><span class="sn">${n}</span>
-      <button class="cell serif" onclick="openSet('${id}',${k})" aria-label="${t('changeNumbers')}">${s.weight ? fmtNum(s.weight) : '–'}</button>${reps}${check}</div>`;
+      <button class="cell serif" onclick="openSet(${id},${k})" aria-label="${t('changeNumbers')}">${s.weight ? fmtNum(s.weight) : '–'}</button>${reps}${check}</div>`;
   }).join('');
   return `<section class="now sets" aria-label="${t('currentAria')}">
     ${nowHead(e, nowSubline(e.exId, last))}
@@ -117,15 +117,15 @@ function currentCard(e) {
     ${i < 0 ? `<div class="all-done">
       <p class="all-done-title">${tn('allSetsDone', doneSets(e).length)}</p>
       <div class="sets-actions">
-        <button class="add" onclick="addPlannedSet('${id}')">${icon('plus')}${t('oneMoreSet')}</button>
-        <button class="finish" onclick="stopEntry('${id}')">${t('finishExLong')}</button>
+        <button class="add" onclick="addPlannedSet(${id})">${icon('plus')}${t('oneMoreSet')}</button>
+        <button class="finish" onclick="stopEntry(${id})">${t('finishExLong')}</button>
       </div>
     </div>` : `<div class="sets-actions">
-      <button class="add" onclick="addPlannedSet('${id}')">${icon('plus')}${t('addSetBtn')}</button>
-      <button onclick="stopEntry('${id}')">${t('finishEx')}</button>
+      <button class="add" onclick="addPlannedSet(${id})">${icon('plus')}${t('addSetBtn')}</button>
+      <button onclick="stopEntry(${id})">${t('finishEx')}</button>
     </div>`}
     <div class="now-links">
-      <button onclick="openEntry('${id}')">${t('details')}</button>
+      <button onclick="openEntry(${id})">${t('details')}</button>
     </div>
   </section>`;
 }
@@ -137,35 +137,35 @@ function nowSubline(exId, last) {
 }
 // En-tête de la carte en cours (muscu et cardio) : retirer, picto (conseils), nom, ligne « dernière fois »
 const nowHead = (e, subline) => `<div class="now-head">
-      <button class="icon-btn now-close" onclick="removeCurrent('${esc(e.id)}')" aria-label="${t('removeEx')}">${icon('close')}</button>
-      <button class="picto-btn" onclick="openTips('${esc(e.exId)}')" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">${icon('info')}</span></button>
+      <button class="icon-btn now-close" onclick="removeCurrent(${jsq(e.id)})" aria-label="${t('removeEx')}">${icon('close')}</button>
+      <button class="picto-btn" onclick="openTips(${jsq(e.exId)})" aria-label="${t('tipsAria')}">${pictoTile(exOfEntry(e), 'big')}<span class="picto-help" aria-hidden="true">${icon('info')}</span></button>
       <div class="now-head-text"><h2 class="now-name">${esc(entryName(e))}</h2>${enLine(entryEn(e))}
         ${subline ? `<p class="now-last">${esc(subline)}</p>` : ''}
         ${tipsChip(e.exId)}</div>
     </div>`;
-const tipsChip = exId => `<button class="tips-chip" onclick="openTips('${esc(exId)}')">${icon('info')}${t('tipsChip')}</button>`;
+const tipsChip = exId => `<button class="tips-chip" onclick="openTips(${jsq(exId)})">${icon('info')}${t('tipsChip')}</button>`;
 
 // ----- Carte en cours (cardio, cours) : les champs de l'exercice, préremplis -----
 function cardioCard(e) {
-  const id = esc(e.id);
+  const id = jsq(e.id);
   const last = lastTimeOf(e.exId);
   const fields = fieldsFor(e.exId, e.kind, e);
   const cells = fields.filter(k => k !== 'track').map(k => `<div class="fcell">
       <p class="flabel">${t('fs_' + k)}</p>
-      <div class="fstep"><button onclick="stepEntryField('${id}','${k}',-1)" aria-label="${t('minus')} : ${t('fs_' + k)}">${icon('minus')}</button>
-        <input class="serif" inputmode="decimal" value="${e[k] === null || e[k] === undefined ? '' : fmtNum(e[k])}" placeholder="—" data-live oninput="setEntryField('${id}','${k}',this.value)" onfocus="this.select()" aria-label="${t('fs_' + k)}">
-        <button onclick="stepEntryField('${id}','${k}',1)" aria-label="${t('plus')} : ${t('fs_' + k)}">${icon('plus')}</button></div>
+      <div class="fstep"><button onclick="stepEntryField(${id},'${k}',-1)" aria-label="${t('minus')} : ${t('fs_' + k)}">${icon('minus')}</button>
+        <input class="serif" inputmode="decimal" value="${e[k] === null || e[k] === undefined ? '' : fmtNum(e[k])}" placeholder="—" data-live oninput="setEntryField(${id},'${k}',this.value)" onfocus="this.select()" aria-label="${t('fs_' + k)}">
+        <button onclick="stepEntryField(${id},'${k}',1)" aria-label="${t('plus')} : ${t('fs_' + k)}">${icon('plus')}</button></div>
       <p class="funit">${t('unit_' + k)}</p></div>`).join('');
   const track = fields.includes('track') ? `<div class="chips wrap ftrack">${tracks().map(tr =>
-    `<button class="chip${e.track === tr.id ? ' active' : ''}" onclick="setEntryTrack('${id}','${esc(tr.id)}')">${esc(tr.name)}</button>`).join('')}</div>` : '';
+    `<button class="chip${e.track === tr.id ? ' active' : ''}" onclick="setEntryTrack(${id},${jsq(tr.id)})">${esc(tr.name)}</button>`).join('')}</div>` : '';
   const diff = cardioDiff(e, last && last.entry);
   return `<section class="now sets" aria-label="${t('currentAria')}">
     ${nowHead(e, last ? t('lastShort', { what: entrySummary(last.entry) }) : '')}
     <div class="fgrid">${cells}</div>
     ${track}
     ${diff ? `<p class="progress-chip static"><span class="pc-arrow">↑</span><span>${esc(diff)}</span></p>` : ''}
-    <button class="btn-accent big" onclick="finishCardio('${id}')">${icon('check')}${t('done')}</button>
-    <div class="now-links"><button onclick="openEntry('${id}')">${t('details')}</button></div>
+    <button class="btn-accent big" onclick="finishCardio(${id})">${icon('check')}${t('done')}</button>
+    <div class="now-links"><button onclick="openEntry(${id})">${t('details')}</button></div>
   </section>`;
 }
 // « Par rapport à la dernière fois : pente +1 %, vitesse +0,5 km/h »

@@ -85,7 +85,12 @@ function savePseudo(v) {
   toast(p ? t('pseudoSaved', { p }) : t('pseudoRemoved'));
   if (!$('#sheet').classList.contains('hidden')) openMenu();
 }
-function logout() { closeSheet(); Backend.logout(); }
+function logout() {
+  // Des séances pas encore envoyées seraient perdues avec la copie locale
+  if (!DEMO && Data.pending && !confirm(t('logoutPending'))) return;
+  closeSheet();
+  Backend.logout();
+}
 
 // ===== CONNEXION =====
 let authMode = 'login';
