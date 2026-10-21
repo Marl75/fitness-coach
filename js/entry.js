@@ -1,12 +1,7 @@
 // ===== DÉTAIL D'UN EXERCICE : série précise, réglages de muscu, précisions, conseils, éditeur cardio =====
 
-// ===== RÉGLER UNE SÉRIE (grande pile + poids exact) =====
-const WEIGHT_STEPS = [0.25, 0.5, 1, 2.5];
-function weightStep() {
-  let v = null;
-  try { v = parseFloat(localStorage.getItem('fitcoach-wstep')); } catch (e) {}
-  return WEIGHT_STEPS.includes(v) ? v : 0.5;
-}
+// ===== RÉGLER UNE SÉRIE (poids et répétitions : deux compteurs identiques) =====
+// Sous chaque compteur, le chiffre de la même série la dernière fois.
 function openSet(entryId, idx) {
   const e = (sessionOf(UI.date).entries || []).find(x => x.id === entryId);
   if (!e) return;
@@ -15,73 +10,41 @@ function openSet(entryId, idx) {
   const keep = set.done === false;
   setDraft = { entryId, idx, reps: set.reps, weight: set.weight || 0, wasDone: set.done !== false, keep };
   const last = historyOf(e.exId).find(h => h.date < UI.date);
-  const values = Array.from({ length: 81 }, (_, i) => i * STEP); // 0 à 200 kg
+  const lastSets = last ? doneSets(last.entry) : [];
+  const prev = lastSets[Math.min(idx, lastSets.length - 1)];
+  const counter = (id, label, value, step, set, prevText) => `
+    <div class="counter">
+      <p class="label">${label}</p>
+      <div class="counter-ctl">
+        <button type="button" class="round-btn" onclick="${step}(-1)" aria-label="${t('minus')} : ${label}">${icon('minus')}</button>
+        <input class="counter-input serif" id="${id}" inputmode="decimal" value="${value}" placeholder="0" oninput="${set}(this.value)" onfocus="this.select()" aria-label="${label}">
+        <button type="button" class="round-btn" onclick="${step}(1)" aria-label="${t('plus')} : ${label}">${icon('plus')}</button>
+      </div>
+      <p class="counter-prev">${prevText ? esc(t('prevValue', { v: prevText })) : '&nbsp;'}</p>
+    </div>`;
   openSheet(`
     <div class="sheet-head">
       <div><div class="eyebrow">${t('setOf', { i: idx + 1, n: e.sets.length })}</div><h3>${esc(entryName(e))}</h3>${enLine(entryEn(e))}</div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
-    <div class="set-editor">
-      <div class="set-col">
-        <p class="label">${t('weightHint')}</p>
-        <div class="stack-scroll" id="set-stack">${stackHtml(values, setDraft.weight, 'pinSet')}</div>
-      </div>
-      <div class="set-col reps-col">
-        <p class="label">${t('reps')}</p>
-        <button class="round-btn" onclick="stepReps(1)" aria-label="${t('repPlus')}">${icon('plus')}</button>
-        <input class="reps-input serif" id="reps" inputmode="numeric" value="${setDraft.reps ?? ''}" placeholder="0" onchange="setDraft.reps=numOrNull(this.value)" onfocus="this.select()" aria-label="${t('reps')}">
-        <button class="round-btn" onclick="stepReps(-1)" aria-label="${t('repMinus')}">${icon('minus')}</button>
-      </div>
-    </div>
-    <div class="solo">
-      <span>${t('weightExact')} (kg)</span>
-      <div class="weight-row">
-        <div class="stepper">
-          <button type="button" onclick="stepWeight(-1)" aria-label="${t('minus')}">${icon('minus')}</button>
-          <input class="serif" id="weight-input" inputmode="decimal" value="${setDraft.weight ? fmtNum(setDraft.weight) : ''}" placeholder="0" onchange="setWeight(this.value)" onfocus="this.select()" aria-label="${t('weightAria')}">
-          <button type="button" onclick="stepWeight(1)" aria-label="${t('plus')}">${icon('plus')}</button>
-        </div>
-        <div class="step-pick"><span class="muted small">${t('stepLabel')}</span><div class="seg small" id="wstep">${weightStepsHtml()}</div></div>
-      </div>
+    <div class="counters">
+      ${counter('weight-input', t('weightKg'), setDraft.weight ? fmtNum(setDraft.weight) : '', 'stepWeight', 'setWeight', prev && prev.weight ? `${fmtNum(prev.weight)} kg` : '')}
+      ${counter('reps', t('reps'), setDraft.reps ?? '', 'stepReps', 'setReps', prev && prev.reps ? t('repsUnit', { v: prev.reps }) : '')}
     </div>
     <p class="muted small">${last ? t('lastTime', { when: relDay(last.date), what: esc(entrySummary(last.entry)) }) : t('firstTimeEx')}</p>
     <button class="btn-accent big" onclick="saveSet()">${setDraft.wasDone || keep ? t('save') : t('validateSet')}</button>
     ${setDraft.wasDone ? `<button class="link-danger" onclick="deleteSet()">${t('deleteSet')}</button>` : ''}`);
-  const pin = $('#set-stack .plate.pin');
-  if (pin) pin.scrollIntoView({ block: 'center' });
 }
-const weightStepsHtml = () => WEIGHT_STEPS.map(v =>
-  `<button class="${v === weightStep() ? 'active' : ''}" aria-pressed="${v === weightStep()}" onclick="setWeightStep(${v})">${fmtNum(v)}</button>`).join('');
-function setWeightStep(v) {
-  try { localStorage.setItem('fitcoach-wstep', v); } catch (e) {}
-  $('#wstep').innerHTML = weightStepsHtml();
-}
-// Le poids exact (au clavier ou avec + / −) et la pile restent d'accord
-function showWeight(scroll) {
-  const values = [...document.querySelectorAll('#set-stack .plate')].map(p => +p.dataset.v);
-  const at = pinPlate(values, setDraft.weight);
-  document.querySelectorAll('#set-stack .plate').forEach(p => {
-    const pv = +p.dataset.v;
-    p.classList.toggle('pin', pv === at);
-    p.classList.toggle('lifted', pv < at);
-    p.setAttribute('aria-pressed', pv === at);
-  });
-  const input = $('#weight-input');
-  if (input) input.value = setDraft.weight ? fmtNum(setDraft.weight) : '';
-  const pin = $('#set-stack .plate.pin');
-  if (scroll && pin) pin.scrollIntoView({ block: 'nearest' });
-}
-function pinSet(v) { setDraft.weight = v; showWeight(false); }
 function stepWeight(d) {
-  const step = weightStep();
-  setDraft.weight = Math.max(0, Math.round((setDraft.weight + d * step) * 100) / 100);
-  showWeight(true);
+  setDraft.weight = Math.max(0, Math.round((setDraft.weight + d * STEP) * 100) / 100);
+  $('#weight-input').value = setDraft.weight ? fmtNum(setDraft.weight) : '';
 }
-function setWeight(v) { setDraft.weight = Math.max(0, numOrNull(v) || 0); showWeight(true); }
+function setWeight(v) { setDraft.weight = Math.max(0, numOrNull(v) || 0); }
 function stepReps(d) {
   setDraft.reps = Math.max(0, (setDraft.reps || 0) + d) || null;
   $('#reps').value = setDraft.reps ?? '';
 }
+function setReps(v) { setDraft.reps = numOrNull(v); }
 function saveSet() {
   setDraft.reps = numOrNull($('#reps').value);
   setDraft.weight = Math.max(0, numOrNull($('#weight-input').value) || 0);

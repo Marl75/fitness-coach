@@ -29,7 +29,7 @@ const I18N = {
     exercises_one: '{n} exercice', exercises_other: '{n} exercices', sets_one: '{n} série', sets_other: '{n} séries',
     cardioMin: '{n} min de cardio / cours', plannedSets_one: '{n} série prévue', plannedSets_other: '{n} séries prévues',
     currentAria: 'Exercice en cours', setOf: 'Série {i} sur {n}', changeNumbers: 'Changer les chiffres de la série',
-    noWeight: 'sans poids', plateNone: 'Sans', plateNoneAria: 'Sans poids', kilos: '{w} kilos', stackAria: 'Pile de plaques',
+    noWeight: 'sans poids',
     setDone: 'Série faite', addSetShort: '+ série', validateAll: 'Tout valider', stopHere: 'Arrêter là',
     exerciseDone: 'Exercice terminé', setNDone: 'Série {n} faite', addedFav: 'Ajouté aux favoris', removedFav: 'Retiré des favoris',
     // Choix de l'exercice
@@ -45,7 +45,7 @@ const I18N = {
     hide: 'Masquer', unhide: 'Réafficher', hiddenSection: 'Masqués ({n})', hiddenToast: 'Masqué · en bas de la liste',
     unhiddenToast: 'Réaffiché', hiddenHint: 'Exercices que tu as masqués. Touche « Réafficher » pour les remettre dans la liste.',
     // Réglage d'une série
-    weightHint: 'Poids · touche une plaque', reps: 'Répétitions', repPlus: 'Une répétition de plus', repMinus: 'Une répétition de moins',
+    reps: 'Répétitions', repPlus: 'Une répétition de plus', repMinus: 'Une répétition de moins',
     lastTime: 'La dernière fois ({when}) : {what}', firstTimeEx: 'Première fois sur cet exercice.', firstTime: 'Première fois !',
     validateSet: 'Valider la série', deleteSet: 'Supprimer cette série', modified: 'Modifié', saved: 'Enregistré',
     setDeleted: 'Série supprimée', planned: 'prévue', addSet: 'Ajouter une série', note: 'Commentaire',
@@ -104,7 +104,7 @@ const I18N = {
     exercises_one: '{n} exercise', exercises_other: '{n} exercises', sets_one: '{n} set', sets_other: '{n} sets',
     cardioMin: '{n} min of cardio / classes', plannedSets_one: '{n} set planned', plannedSets_other: '{n} sets planned',
     currentAria: 'Current exercise', setOf: 'Set {i} of {n}', changeNumbers: 'Change this set',
-    noWeight: 'bodyweight', plateNone: 'None', plateNoneAria: 'No weight', kilos: '{w} kilos', stackAria: 'Weight stack',
+    noWeight: 'bodyweight',
     setDone: 'Set done', addSetShort: '+ set', validateAll: 'Mark all done', stopHere: 'Stop here',
     exerciseDone: 'Exercise done', setNDone: 'Set {n} done', addedFav: 'Added to favorites', removedFav: 'Removed from favorites',
     whichExercise: 'Which exercise?', search: 'Search…', searchAria: 'Search exercises', categories: 'Categories',
@@ -118,7 +118,7 @@ const I18N = {
     created: '“{name}” created',
     hide: 'Hide', unhide: 'Show again', hiddenSection: 'Hidden ({n})', hiddenToast: 'Hidden · moved to the bottom of the list',
     unhiddenToast: 'Shown again', hiddenHint: 'Exercises you have hidden. Tap “Show again” to put them back in the list.',
-    weightHint: 'Weight · tap a plate', reps: 'Reps', repPlus: 'One more rep', repMinus: 'One less rep',
+    reps: 'Reps', repPlus: 'One more rep', repMinus: 'One less rep',
     lastTime: 'Last time ({when}): {what}', firstTimeEx: 'First time on this exercise.', firstTime: 'First time!',
     validateSet: 'Log this set', deleteSet: 'Delete this set', modified: 'Updated', saved: 'Saved',
     setDeleted: 'Set deleted', planned: 'planned', addSet: 'Add a set', note: 'Comment',
@@ -166,8 +166,6 @@ Object.assign(I18N.fr, {
   trackName: 'Nom de la piste', trackNamePh: 'ex. Piste du parc', trackLength: 'Longueur d’un aller (mètres, facultatif)',
   trackLengthHint: 'Avec la longueur, l’appli calcule la distance parcourue.', trackAdd: 'Ajouter la piste', trackLen: '{v} m',
   lapsTitle: 'Allers-retours',
-  // Poids précis
-  weightExact: 'Poids exact', stepLabel: 'Pas des boutons', weightAria: 'Poids en kilos',
   // Réglages de muscu
   setup: 'Réglages', setupHint: 'Gardés pour la prochaine fois.', machine: 'Machine', dumbbells: 'Avec haltères',
   position: 'Position', pos_standing: 'Debout', pos_seated: 'Position assise', pos_supine: 'Sur le dos', pos_prone: 'Sur le ventre',
@@ -185,7 +183,7 @@ Object.assign(I18N.fr, {
   goalsFilterHint: 'Exercices qui travaillent tes muscles à développer, en ménageant les autres. Les mieux adaptés en premier.',
   goalWarnMain: 'Sollicite surtout : {m} (à ménager)', goalBadge: 'Objectif : {m}', privacy: 'Confidentialité',
   startTitle: 'On fait quoi aujourd’hui ?', freeSession: 'Séance libre', saveAsRoutine: 'Enregistrer comme routine',
-  routineHint: 'Une fois ta séance faite, touche « Enregistrer comme routine » en bas pour la relancer d’un geste la prochaine fois. Ou crée-la directement : Mon compte › Mes routines.',
+  routineHint: 'Une fois ta séance faite, touche « Enregistrer comme routine » en bas pour la relancer d’un geste la prochaine fois. Ou crée-la directement : Réglages › Mes routines.',
   plannedShort: 'Prévu', repTargetShort: 'Objectif {a} à {b} rép.', lastShortLower: 'dernière fois {what}', tipsChip: 'Bien faire',
   unit_duration: 'min', unit_distance: 'km', unit_speed: 'km/h', unit_incline: '%', unit_level: 'niveau', unit_rpe: 'sur 10',
   unit_laps: 'allers-retours', unit_carry: 'kg × 2', unit_floors: 'étages', vsLast: 'Par rapport à la dernière fois : {what}',
@@ -258,7 +256,6 @@ Object.assign(I18N.en, {
   trackName: 'Track name', trackNamePh: 'e.g. Park track', trackLength: 'One-way length (metres, optional)',
   trackLengthHint: 'With the length, the app works out the distance covered.', trackAdd: 'Add track', trackLen: '{v} m',
   lapsTitle: 'Laps',
-  weightExact: 'Exact weight', stepLabel: 'Button step', weightAria: 'Weight in kilos',
   setup: 'Setup', setupHint: 'Kept for next time.', machine: 'Machine', dumbbells: 'With dumbbells',
   position: 'Position', pos_standing: 'Standing', pos_seated: 'Seated', pos_supine: 'Lying on your back', pos_prone: 'Lying face down',
   bench: 'Bench', bench_flat: 'Flat', bench_incline: 'Incline', bench_decline: 'Decline', benchAngle: 'Bench angle (degrees)',
@@ -275,7 +272,7 @@ Object.assign(I18N.en, {
   goalsFilterHint: 'Exercises that work the muscles you want to develop while sparing the others. Best matches first.',
   goalWarnMain: 'Mainly works: {m} (go easy)', goalBadge: 'Goal: {m}', privacy: 'Privacy',
   startTitle: 'What are we doing today?', freeSession: 'Free workout', saveAsRoutine: 'Save as routine',
-  routineHint: 'Once your workout is done, tap “Save as routine” at the bottom to start it in one tap next time. Or create it directly: My account › My routines.',
+  routineHint: 'Once your workout is done, tap “Save as routine” at the bottom to start it in one tap next time. Or create it directly: Settings › My routines.',
   plannedShort: 'Planned', repTargetShort: 'Target {a} to {b} reps', lastShortLower: 'last time {what}', tipsChip: 'Good form',
   unit_duration: 'min', unit_distance: 'km', unit_speed: 'km/h', unit_incline: '%', unit_level: 'level', unit_rpe: 'out of 10',
   unit_laps: 'laps', unit_carry: 'kg × 2', unit_floors: 'floors', vsLast: 'Compared to last time: {what}',
@@ -348,6 +345,58 @@ function t(key, params) {
   if (params) Object.entries(params).forEach(([k, v]) => { str = str.split(`{${k}}`).join(v); });
   return str;
 }
+// ===== Réglages, présentation, Bien démarrer, fin d'exercice, Suivi (octobre 2026) =====
+Object.assign(I18N.fr, {
+  navSettings: 'Réglages', settingsSub: 'Objectifs, routines, exercices, langue',
+  settingsHint: 'Tout est facultatif : l’appli marche très bien sans.',
+  weeklyGoalSub: 'Pour suivre ta régularité semaine après semaine.', goalsNone: 'Pas encore choisis',
+  routinesNone: 'Aucune pour l’instant : tes séances types, lancées d’un geste', myExercisesNone: 'Ceux que tu crées apparaîtront ici',
+  createdN_one: '{n} exercice créé', createdN_other: '{n} exercices créés', replayIntro: 'Revoir la présentation',
+  setupTitle: 'Bien démarrer', setupCount: '{n} / {total}', setupHide: 'Masquer « Bien démarrer »',
+  setupFoot: 'Facultatif. Tout se retrouve dans l’onglet Réglages.', setupHidden: 'Masqué. Tout reste dans Réglages.',
+  stepGoal: 'Choisir mon nombre de séances par semaine', stepGoalDone_one: '{n} séance par semaine', stepGoalDone_other: '{n} séances par semaine',
+  stepMuscles: 'Choisir mes muscles cibles', stepRoutine: 'Créer ma première routine', noted: 'C’est noté',
+  obSkip: 'Passer', obStep: '{n} sur 3 · facultatif', obNext: 'Suivant',
+  obGoalTitle: 'Combien de séances par semaine ?',
+  obGoalText: 'Ton objectif de régularité. L’onglet Suivi te montre chaque semaine où tu en es.',
+  obMusclesTitle: 'Des muscles à travailler en priorité ?',
+  obMusclesText: 'Les exercices qui vont dans ton sens sont mis en avant ; ceux qui sollicitent un muscle à ménager sont signalés en orange. Tu peux n’en choisir aucun.',
+  obRoutineTitle: 'Tes séances types en un geste',
+  obRoutineText: 'Une routine est une liste d’exercices que tu lances d’un geste, avec tes chiffres de la dernière fois. Tu peux aussi l’enregistrer plus tard, à la fin d’une séance.',
+  obRoutineCreate: 'Créer ma première routine', obRoutineLater: 'Plus tard : je commence par une séance libre',
+  obFoot: 'Tout se retrouve dans l’onglet Réglages.', obMusclesTap: 'Un appui : à développer. Deux : à ménager. Trois : rien.',
+  weightKg: 'Poids (kg)', prevValue: 'Dernière fois : {v}',
+  allSetsDone_one: '{n} série faite', allSetsDone_other: '{n} séries faites', oneMoreSet: 'Une de plus', finishExLong: 'Terminer l’exercice',
+  kpiSessions: 'Séances', kpiCardio: 'Cardio', kpiStreak: 'Régularité', weeksShort: 'sem.',
+  progressTitle: 'Progression', allExercises: 'Tous mes exercices ({n})', musclesInfoAria: 'Comment lire ce tableau',
+  heat1: '1 jour', heat2: '{d} jours ou plus : le repère',
+});
+Object.assign(I18N.en, {
+  navSettings: 'Settings', settingsSub: 'Goals, routines, exercises, language',
+  settingsHint: 'All optional: the app works fine without.',
+  weeklyGoalSub: 'To track your consistency week after week.', goalsNone: 'Not chosen yet',
+  routinesNone: 'None yet: your usual workouts, started in one tap', myExercisesNone: 'The ones you create will show here',
+  createdN_one: '{n} exercise created', createdN_other: '{n} exercises created', replayIntro: 'See the introduction again',
+  setupTitle: 'Getting started', setupCount: '{n} / {total}', setupHide: 'Hide “Getting started”',
+  setupFoot: 'Optional. Everything is in the Settings tab.', setupHidden: 'Hidden. Everything stays in Settings.',
+  stepGoal: 'Choose my workouts per week', stepGoalDone_one: '{n} workout a week', stepGoalDone_other: '{n} workouts a week',
+  stepMuscles: 'Choose my target muscles', stepRoutine: 'Create my first routine', noted: 'Got it',
+  obSkip: 'Skip', obStep: '{n} of 3 · optional', obNext: 'Next',
+  obGoalTitle: 'How many workouts a week?',
+  obGoalText: 'Your consistency goal. The Progress tab shows each week where you stand.',
+  obMusclesTitle: 'Any muscles to focus on?',
+  obMusclesText: 'Exercises that match your goals come first; those that work a muscle to go easy on are flagged in orange. You can pick none.',
+  obRoutineTitle: 'Your usual workouts in one tap',
+  obRoutineText: 'A routine is a list of exercises you start in one tap, with your numbers from last time. You can also save one later, at the end of a workout.',
+  obRoutineCreate: 'Create my first routine', obRoutineLater: 'Later: I’ll start with a free workout',
+  obFoot: 'Everything is in the Settings tab.', obMusclesTap: 'Tap once: to develop. Twice: to go easy on. Three times: none.',
+  weightKg: 'Weight (kg)', prevValue: 'Last time: {v}',
+  allSetsDone_one: '{n} set done', allSetsDone_other: '{n} sets done', oneMoreSet: 'One more', finishExLong: 'Finish exercise',
+  kpiSessions: 'Workouts', kpiCardio: 'Cardio', kpiStreak: 'Streak', weeksShort: 'wk',
+  progressTitle: 'Progress', allExercises: 'All my exercises ({n})', musclesInfoAria: 'How to read this',
+  heat1: '1 day', heat2: '{d}+ days: the benchmark',
+});
+
 // Pluriel : en français 0 et 1 sont au singulier, en anglais seul 1 l'est
 function tn(key, n, params) {
   const one = currentLang === 'fr' ? n <= 1 : n === 1;
@@ -382,6 +431,6 @@ function toggleLanguage() {
   if (typeof switchAuth === 'function') switchAuth(authMode);
   if (Data.user) {
     render();
-    if (!$('#sheet').classList.contains('hidden')) openMenu();
+    if (sheetRefresh) sheetRefresh();
   }
 }
