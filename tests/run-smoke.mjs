@@ -11,8 +11,16 @@ for (const lang of ['fr', 'en']) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
+  // La CSP de l'appli reste active : un blocage (script, connexion…) fait échouer le test
+  page.on('console', m => { if (/Content Security Policy/i.test(m.text())) errors.push(m.text()); });
   await page.goto(`${BASE}?demo&smoke&lang=${lang}`);
-  const result = await page.waitForFunction(() => window.SMOKE_RESULT, null, { timeout: 60000 }).then(h => h.jsonValue());
+  // page.evaluate plutôt que waitForFunction, qui a besoin d'eval (interdit par la CSP)
+  let result = null;
+  for (let i = 0; i < 120 && !result; i++) {
+    result = await page.evaluate(() => window.SMOKE_RESULT || null);
+    if (!result) await new Promise(r => setTimeout(r, 500));
+  }
+  if (!result) { console.log(`[${lang}] pas de résultat au bout d'une minute`); failed = true; await page.close(); continue; }
   console.log(`[${lang}] ${result.passed} / ${result.total} OK`);
   for (const f of result.failed) console.log(`  ✗ ${f.name} : ${f.err}`);
   for (const e of errors) console.log(`  erreur JavaScript : ${e}`);
