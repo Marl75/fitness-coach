@@ -3,19 +3,86 @@ rules_version = '2';
 // Ce fichier est une référence : les règles actives se règlent dans la console Firebase
 // (Firestore Database > Règles), ou avec « firebase deploy --only firestore:rules ».
 // La page de suivi (marl75.github.io/admin) affiche ce texte avec le bon identifiant
-// à la place de ADMIN_UID.
+// à la place de ADMIN_UID. Tests : node tests/rules.cjs (voir le fichier).
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Chaque compte ne lit et n'écrit que ses propres séances, exercices et réglages
-    match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    function signedIn(uid) {
+      return request.auth != null && request.auth.uid == uid;
     }
-    // Statistiques d'utilisation : chaque compte écrit les siennes ;
-    // seule l'administratrice peut toutes les lire
+
+    // Chaque compte ne lit et n'écrit que ses propres séances, exercices et réglages,
+    // et seulement dans ces trois collections, avec des tailles raisonnables.
+    match /users/{uid} {
+      // Séances : une par jour, identifiant AAAA-MM-JJ
+      match /sessions/{day} {
+        allow read, delete: if signedIn(uid);
+        allow create, update: if signedIn(uid)
+          && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.entries is list
+          && request.resource.data.entries.size() <= 100;
+      }
+      // Exercices créés
+      match /exercises/{exId} {
+        allow read, delete: if signedIn(uid);
+        allow create, update: if signedIn(uid)
+          && exId.size() <= 100
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 100;
+      }
+      // Réglages : un seul document « prefs »
+      match /settings/{docId} {
+        allow read, delete: if signedIn(uid);
+        allow create, update: if signedIn(uid) && docId == 'prefs';
+      }
+    }
+
+    // Statistiques d'utilisation (js/usage.js) : chaque compte écrit les siennes, dans un format
+    // contrôlé (la page de suivi les affiche) ; seule l'administratrice peut toutes les lire.
     match /usage/{uid} {
+      // Mois au format AAAA-MM, comme usageMonth() dans usage.js
+      function ym(t) {
+        return string(t.year()) + '-' + (t.month() < 10 ? '0' : '') + string(t.month());
+      }
+      function count(d, f) {
+        return !(f in d) || (d[f] is int && d[f] >= 0 && d[f] <= 100000);
+      }
+      // Compteurs du mois : +1 au plus à chaque écriture
+      function step(after, before, f) {
+        return after.get(f, 0) is int
+            && (after.get(f, 0) == before.get(f, 0) || after.get(f, 0) == before.get(f, 0) + 1);
+      }
+      function validMonth(after, before) {
+        return after.diff(before).affectedKeys().hasOnly(['opens', 'routines', 'lastSeen'])
+            && step(after, before, 'opens') && step(after, before, 'routines')
+            && (!('lastSeen' in after) || after.lastSeen is int);
+      }
+      function validUsage(after, before) {
+        let changed = after.diff(before).affectedKeys();
+        let months = after.get('months', {});
+        let old = before.get('months', {});
+        // Mois en cours : celui de l'appareil peut différer du mois UTC près d'un changement de mois
+        let m1 = ym(request.time - duration.value(14, 'h'));
+        let m2 = ym(request.time + duration.value(14, 'h'));
+        let changedMonths = months.diff(old).affectedKeys();
+        return changed.hasOnly(['email', 'firstSeen', 'lastSeen', 'activityByMonth', 'sessionCount',
+                                'routineCount', 'customCount', 'goalsCount', 'lang', 'months'])
+            && (!('email' in changed) || after.email == request.auth.token.get('email', ''))
+            && (!('firstSeen' in changed) || (!('firstSeen' in before) && after.firstSeen is int))
+            && (!('lastSeen' in changed) || after.lastSeen is int)
+            && (!('activityByMonth' in changed) || (after.activityByMonth is map && after.activityByMonth.size() <= 240))
+            && count(after, 'sessionCount') && count(after, 'routineCount')
+            && count(after, 'customCount') && count(after, 'goalsCount')
+            && (!('lang' in changed) || after.lang in ['fr', 'en'])
+            && months is map
+            && changedMonths.hasOnly([m1, m2]) && changedMonths.size() <= 1
+            && validMonth(months.get(m1, {}), old.get(m1, {}))
+            && validMonth(months.get(m2, {}), old.get(m2, {}));
+      }
       allow read: if request.auth != null && (request.auth.uid == uid || request.auth.uid == 'ADMIN_UID');
-      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow create: if signedIn(uid) && validUsage(request.resource.data, {});
+      allow update: if signedIn(uid) && validUsage(request.resource.data, resource.data);
     }
+
     // Tout le reste est interdit
     match /{document=**} {
       allow read, write: if false;

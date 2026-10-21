@@ -37,6 +37,7 @@ A small progressive web app to log workouts and keep track of your consistency.
 
 - Plain HTML, CSS and JavaScript, no build step
 - [Firebase](https://firebase.google.com/) Authentication (email and password) and Firestore; configuration in `js/config.js`, security rules in `firestore.rules`
+- Security: `firestore.rules` limits each account to its own sessions, custom exercises and settings and checks the format of usage statistics (tested on Firebase without deploying: `node tests/rules.cjs`); a Content-Security-Policy restricts scripts and connections to the app, Firebase and Google Fonts; logging out also erases the offline copy kept on the device
 - Language follows the browser; `?lang=en` or `?lang=fr` in the address forces it
 - Without a configuration, or with `?demo` in the address, the app opens in demo mode on a sample account kept in the browser (`demoData()` in `js/data.js`); the login screen links to it, and `?signup` opens the sign-up tab
 

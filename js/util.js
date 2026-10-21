@@ -1,6 +1,9 @@
 // ===== OUTILS =====
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Valeur passée à une fonction dans un attribut onclick : échappée pour JavaScript puis pour HTML
+// (esc seul ne suffit pas : &#39; redevient ' avant que le JavaScript soit lu)
+const jsq = v => esc(JSON.stringify(String(v ?? '')));
 const icon = (id, cls = '') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
