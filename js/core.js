@@ -10,7 +10,6 @@ const UI = {
 };
 let draft = null;      // cardio / cours en cours de saisie
 let setDraft = null;   // série en cours de réglage (pile de plaques)
-try { UI.tab = localStorage.getItem('fitcoach-tab') || 'today'; } catch (e) {}
 
 // ===== EXERCICES & HISTORIQUE =====
 function allExercises() {
@@ -66,7 +65,6 @@ const countStepper = (value, minus, plus, id = '') => `<div class="stepper small
 // ===== NAVIGATION =====
 function setTab(tab) {
   UI.tab = tab;
-  try { localStorage.setItem('fitcoach-tab', tab); } catch (e) {}
   window.scrollTo(0, 0);
   render();
 }

@@ -35,6 +35,9 @@
   await step('Bien démarrer, présentation et onglet Réglages', async () => {
     savePrefs({ weeklyGoal: undefined, setupHidden: undefined, onboarded: undefined }); render(); await wait();
     ok($('.setup-card') && document.querySelectorAll('.setup-step').length === 3, 'carte Bien démarrer absente');
+    ok(weeklyGoal() === 2, 'objectif par défaut différent de 2');
+    ok($('.empty .muted').textContent.includes(t('weekProgress_other', { n: 0, goal: 2 }).slice(0, 12)), 'séances de la semaine mal libellées');
+    ok(!$('.quick'), 'favoris encore affichés sur l’accueil');
     ok($('.nav-btn[data-tab="settings"].has-dot'), 'point sur Réglages absent');
     openOnboarding(); ok($('#onboarding h3'), 'présentation absente');
     UI.ob.goal = 4; $('#onboarding .btn-accent').click(); await wait();
@@ -47,6 +50,7 @@
     hideSetupCard(); await wait(); ok(!$('.setup-card'), 'carte non masquée');
     setTab('settings'); await wait();
     ok(document.querySelectorAll('#view .btn-line').length >= 5 && $('#goal-val'), 'onglet Réglages incomplet');
+    ok(!$('#view .center-link'), '« Revoir la présentation » encore là');
     changeGoal(-1); await wait(); ok(weeklyGoal() === 3, 'objectif par semaine non modifié');
     savePrefs({ goals: { pecs: 'up', lats: 'up', upperback: 'up', traps: 'down' } });
     setTab('today'); await wait();
@@ -127,6 +131,18 @@
     openSaveRoutine(); $('#routine-name').value = 'Test séance'; saveRoutineFromDraft(); await wait(200);
     ok(routines().some(r => r.name === 'Test séance' && r.items.length === 2), 'routine non enregistrée');
   });
+  await step('Choisir les exercices d’une routine dans la liste complète', async () => {
+    openRoutineEditor(); UI.rDraft.name = 'Test liste';
+    openPicker('routine'); await wait();
+    ok($('#picker-chips .chip') && $('#picker-done'), 'liste complète absente');
+    setFilter('lower'); await wait();
+    const first = $('#picker-list .pick .pick-main'); first.click(); await wait();
+    ok(UI.rDraft.items.length === 1 && $('#picker-list .pick.picked'), 'exercice non coché');
+    first.click(); await wait(); ok(UI.rDraft.items.length === 0, 'exercice non décoché');
+    rdAdd('squat'); $('#picker-done button') ? $('#picker-done button').click() : showRoutineEditor(); await wait();
+    ok($('#rd-body') && UI.rDraft.items.includes('squat'), 'retour à la routine raté');
+    closeSheet(); await wait();
+  });
   await step('Créer une routine depuis Mon compte', async () => {
     openRoutines(); openRoutineEditor();
     UI.rDraft.name = 'Test compte'; rdAdd('squat'); rdAdd('hipthrust'); rdMove(1, -1); saveRoutineDraft(); await wait(200);
@@ -193,6 +209,13 @@
     setTab('today'); await wait();
     const b = $('.date-chip'); if (b) { openDayPicker(); ok($('.cal-grid'), 'calendrier absent'); closeSheet(); }
     await wait();
+    // Jour passé déjà noté : lien discret « Ajouter un exercice oublié », pas de favoris
+    const y = isoDate(addDays(new Date(), -2)), old = Date.now() - 2 * 86400000, before = sessionOf(y);
+    Backend.put('sessions', y, { entries: [{ id: 'sm-p', exId: 'squat', name: 'Squat', kind: 'sets', note: '', sets: [{ reps: 10, weight: 20, done: true }] }], createdAt: old, updatedAt: old });
+    goToDay(y); await wait();
+    ok([...document.querySelectorAll('#view .link')].some(l => l.textContent.includes(t('addForgotten'))) && !$('#view .btn-outline'), 'jour passé : bouton au lieu du lien discret');
+    if (before) { const { id, ...doc } = before; Backend.put('sessions', y, doc); } else Backend.del('sessions', y);
+    goToDay(isoDate()); await wait();
   });
   await step('Anglais', async () => {
     toggleLanguage(); await wait();

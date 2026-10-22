@@ -89,20 +89,34 @@ function setFilter(id) {
   if (chip) chip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
 }
 
-function openPicker() {
+// mode 'routine' : toucher un exercice l'ajoute à la routine en cours de création (ou l'en retire), sans fermer la liste
+function openPicker(mode) {
+  UI.pickFor = mode === 'routine' ? 'routine' : null;
   UI.search = '';
   UI.filter = defaultFilter();
+  const forRoutine = UI.pickFor === 'routine';
   openSheet(`
-    <div class="sheet-head"><h3>${t('whichExercise')}</h3>
-      <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button></div>
+    <div class="sheet-head"><h3>${forRoutine ? t('rdPickTitle') : t('whichExercise')}</h3>
+      ${forRoutine ? `<button class="icon-btn" onclick="showRoutineEditor()" aria-label="${t('back')}">${icon('prev')}</button>`
+        : `<button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>`}</div>
     <input class="input" type="search" placeholder="${t('search')}" oninput="UI.search=this.value;renderPickerList()" aria-label="${t('searchAria')}">
     <div class="chips" id="picker-chips" role="tablist" aria-label="${t('categories')}"></div>
-    <div id="picker-list"></div>`, renderPickerList);
+    <div id="picker-list"></div>
+    ${forRoutine ? '<div class="picker-done" id="picker-done"></div>' : ''}`, renderPickerList);
 }
+// Toucher un exercice de la liste : l'ajouter à la séance, ou (mode routine) à la routine
+function pickFromList(id, exObj) {
+  if (UI.pickFor !== 'routine') { pickExercise(id, exObj); return; }
+  const items = UI.rDraft.items;
+  const i = items.indexOf(id);
+  if (i >= 0) items.splice(i, 1); else items.push(id);
+  renderPickerList();
+}
+const inRoutineDraft = id => UI.pickFor === 'routine' && UI.rDraft.items.includes(id);
 
 function hiddenItem(ex) {
   return `<div class="pick hidden-ex">
-    <button class="pick-main" onclick="pickExercise(${jsq(ex.id)})"><span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}</button>
+    <button class="pick-main" onclick="pickFromList(${jsq(ex.id)})"><span class="pick-name">${esc(exLabel(ex))}</span>${enLine(exEn(ex))}</button>
     <button class="unhide" onclick="toggleHidden(${jsq(ex.id)})">${t('unhide')}</button>
   </div>`;
 }
@@ -127,10 +141,12 @@ function pickItem(ex) {
   const downSec = sec.filter(m => !main.includes(m) && muscleGoal(m) === 'down');
   const tags = (up.length ? `<span class="tag ok">${icon('check')}${esc(muscleShort(up[0]))}${up.length > 1 ? ` +${up.length - 1}` : ''}</span>` : '')
     + (downMain.length ? `<span class="tag warn strong">${esc(muscleShort(downMain[0]))}</span>` : downSec.length ? `<span class="tag warn">${esc(muscleShort(downSec[0]))}</span>` : '');
-  return `<div class="pick">
-    <button class="pick-main" onclick="pickExercise(${jsq(ex.id)})">${pictoTile(ex, 'small')}<span class="pick-text">
+  const picked = inRoutineDraft(ex.id);
+  return `<div class="pick${picked ? ' picked' : ''}">
+    <button class="pick-main" onclick="pickFromList(${jsq(ex.id)})" ${UI.pickFor === 'routine' ? `aria-pressed="${picked}"` : ''}>${pictoTile(ex, 'small')}<span class="pick-text">
       <span class="pick-line"><span class="pick-name">${esc(exLabel(ex))}</span>${tags}</span>${enLine(exEn(ex))}
       <span class="pick-sub">${esc(sub)}</span></span></button>
+    ${picked ? `<span class="picked-mark" aria-hidden="true">${icon('check')}</span>` : ''}
     <button class="star${fav ? ' on' : ''}" onclick="toggleFav(${jsq(ex.id)})" aria-pressed="${fav}" aria-label="${fav ? t('favOn') : t('favOff')} : ${esc(exLabel(ex))}">${icon('star')}</button>
     <button class="hide-btn" onclick="toggleHidden(${jsq(ex.id)})" aria-label="${t('hide')} : ${esc(exLabel(ex))}">${icon('eyeoff')}</button>
   </div>`;
@@ -189,6 +205,8 @@ function renderPickerList() {
     html += `<button class="pick-create" onclick="openCreate()">${icon('plus')}${t('createExercise')}</button>`;
   }
   box.innerHTML = html + hiddenSection(hiddenPool.sort(byName));
+  const done = $('#picker-done');
+  if (done) done.innerHTML = `<button class="btn-accent big" onclick="showRoutineEditor()">${icon('check')}${tn('rdPickDone', UI.rDraft.items.length)}</button>`;
 }
 
 // ===== CRÉER UN EXERCICE (avec vérification des doublons) =====
@@ -264,7 +282,7 @@ function renderSimilar() {
   box.innerHTML = !sim.length ? '' : `
     <div class="similar${createConfirm ? ' warn' : ''}">
       <p class="similar-title">${sim[0].score === 100 ? t('existsAlready') : t('maybeExists')}</p>
-      ${sim.map(({ e }) => `<button class="similar-item" onclick="pickExercise(${jsq(e.id)})">
+      ${sim.map(({ e }) => `<button class="similar-item" onclick="pickFromList(${jsq(e.id)})">
         <span><b>${esc(exLabel(e))}</b><span class="muted small"> · ${esc((GROUPS.find(g => g.id === e.group) || {}).label || '')}</span></span>
         <span class="similar-use">${t('use')}</span></button>`).join('')}
       ${createConfirm ? `<p class="small">${t('confirmCreate')}</p>` : ''}
@@ -276,7 +294,7 @@ function createExercise() {
   const sim = similarExercises(name);
   if (sim.length && sim[0].score === 100) {
     toast(t('existsToast'));
-    pickExercise(sim[0].e.id);
+    pickFromList(sim[0].e.id);
     return;
   }
   if (sim.length && !createConfirm && !createState.variant) {
@@ -294,6 +312,7 @@ function createExercise() {
   if (createState.baseId) ex.variantOf = createState.baseId;
   saveCustomExercise(ex);
   toast(t('created', { name }));
+  if (UI.pickFor === 'routine') { UI.rDraft.items.push(ex.id); showRoutineEditor(); return; }
   pickExercise(ex.id, { ...ex, group: ex.group || 'custom', custom: true });
 }
 // Variante : même type, mêmes infos et mêmes muscles, avec son propre historique
