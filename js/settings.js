@@ -22,7 +22,8 @@ function renderSettings() {
       <button class="btn-line" onclick="openMyExercises()">${t('myExercises')}
         <span class="btn-sub">${nEx ? tn('createdN', nEx) : t('myExercisesNone')}</span></button>
       <div class="btn-line setting-line"><span>${t('language')}</span>${langSwitchHtml()}</div>
-    </div>`;
+    </div>
+    ${feedbackOn() ? `<button class="link feedback-link" onclick="openFeedback()">${t('fbSettingsLink')}</button>` : ''}`;
 }
 const goalStepperHtml = () => countStepper(weeklyGoal(), 'changeGoal(-1)', 'changeGoal(1)', 'goal-val');
 function changeGoal(d) {

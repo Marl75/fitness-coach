@@ -83,6 +83,38 @@ service cloud.firestore {
       allow update: if signedIn(uid) && validUsage(request.resource.data, resource.data);
     }
 
+    // « Une idée, un souci ? » (js/feedback.js) : tout le monde peut envoyer un message, même sans
+    // compte (démo), dans un format contrôlé ; seule l'administratrice peut les lire, changer leur
+    // statut (onglet Retours de la page de suivi) ou les supprimer.
+    match /feedback/{id} {
+      function validFeedback(d) {
+        return d.keys().hasOnly(['app', 'kind', 'text', 'email', 'uid', 'screen', 'lang', 'version', 'ua',
+                                 'demo', 'beta', 'createdAt'])
+            && d.keys().hasAll(['app', 'kind', 'text', 'createdAt'])
+            && d.app == 'routine'
+            && d.kind in ['idea', 'bug', 'other']
+            && d.text is string && d.text.size() > 0 && d.text.size() <= 2000
+            && d.get('email', '') is string && d.get('email', '').size() <= 200
+            // Avec un compte : son identifiant, et son propre e-mail (ou aucun) ; sans compte : ni l'un ni l'autre
+            && (request.auth == null
+                ? d.get('uid', null) == null
+                : d.get('uid', null) == request.auth.uid
+                  && d.get('email', '') in ['', request.auth.token.get('email', '')])
+            && d.get('screen', '') is string && d.get('screen', '').size() <= 20
+            && d.get('lang', 'fr') in ['fr', 'en']
+            && d.get('version', '') is string && d.get('version', '').size() <= 40
+            && d.get('ua', '') is string && d.get('ua', '').size() <= 300
+            && d.get('demo', false) is bool && d.get('beta', false) is bool
+            && d.createdAt == request.time;
+      }
+      // Identifiant automatique de Firestore (repris tel quel dans un bouton de la page de suivi)
+      allow create: if id.matches('^[A-Za-z0-9]{20}$') && validFeedback(request.resource.data);
+      allow read, delete: if request.auth != null && request.auth.uid == 'ADMIN_UID';
+      allow update: if request.auth != null && request.auth.uid == 'ADMIN_UID'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['new', 'todo', 'done'];
+    }
+
     // Tout le reste est interdit
     match /{document=**} {
       allow read, write: if false;
