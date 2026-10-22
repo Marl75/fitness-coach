@@ -311,10 +311,6 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .rd-item .pick-name { flex: 1; min-width: 0; }
 .rd-item .icon-btn { width: 36px; height: 36px; }
 .rd-item .icon-btn svg { width: 16px; height: 16px; }
-.rd-add { margin: 12px 0 16px; padding: 12px; border-radius: 16px; border: 1px dashed var(--steel); }
-.rd-pick { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 0; text-align: left; }
-.rd-pick .pick-name { flex: 1; min-width: 0; }
-.rd-pick > svg { width: 18px; height: 18px; color: var(--accent); }
 .rd-add-btn { margin: 12px 0 18px; }
 
 /* Démarrer : routines */
@@ -495,9 +491,6 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .similar-item:first-of-type { border-top: none; }
 .similar-use { color: var(--accent); font-weight: 800; font-size: 14px; flex-shrink: 0; }
 .similar p.small { margin-top: 6px; color: #F0B44A; }
-.quick { margin-top: 20px; }
-.quick .chips { margin-bottom: 0; }
-.quick .chip svg { fill: currentColor; color: var(--accent); }
 .kinds { display: grid; gap: 8px; margin-bottom: 18px; }
 .kind { display: flex; flex-direction: column; text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--surface-2); }
 .kind.active { border-color: var(--accent); background: var(--accent-soft); }
@@ -603,3 +596,9 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .prog-pct.up { color: var(--accent); }
 .prog-pct.down { color: var(--warn); }
 .card .row-btn { margin-bottom: 0; }
+
+/* Liste des exercices en mode routine : exercices déjà choisis cochés, bouton Terminé en bas */
+.pick.picked { background: var(--accent-soft); border-radius: 14px; }
+.picked-mark { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex-shrink: 0; }
+.picked-mark svg { width: 16px; height: 16px; }
+.picker-done { position: sticky; bottom: 0; padding: 12px 0 calc(4px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, var(--surface) 30%); }

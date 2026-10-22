@@ -126,7 +126,6 @@ function openMuscle(m) {
 function addFromMuscle(exId) {
   UI.date = isoDate();
   UI.tab = 'today';
-  try { localStorage.setItem('fitcoach-tab', 'today'); } catch (e) {}
   render();
   pickExercise(exId);
 }
