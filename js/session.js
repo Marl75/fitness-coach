@@ -40,31 +40,24 @@ function renderToday() {
     const hint = isToday ? startHint() : '';
     html += `
       <div class="empty">
-        <p class="muted">${isToday ? t('weekProgress', { n: weekCount, goal: weeklyGoal() }) : t('noSessionDay')}
+        <p class="muted">${isToday ? tn('weekProgress', weekCount, { goal: weeklyGoal() }) : t('noSessionDay')}
           ${hint ? ` ${hint}` : ''}${!isToday && last ? '' : ''}</p>
         ${isToday ? setupCardHtml() : ''}
         ${routineCardsHtml()}
         <button class="${routines().length ? 'btn-outline' : 'btn-accent big'}" onclick="openPicker()">${icon('plus')}${isToday ? t('freeSession') : t('addExercise')}</button>
         ${!routines().length && isToday && !setupPending() ? `<p class="muted small routine-hint">${t('routineHint')}</p>` : ''}
-        ${quickFavs()}
       </div>`;
   } else {
     html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e)).join('')}</div>
-      <button class="btn-outline" onclick="openPicker()">${icon('plus')}${current && !current.open ? t('addAnother') : t('nextExercise')}</button>
-      ${current ? '' : quickFavs()}
+      ${isToday || current
+        ? `<button class="btn-outline" onclick="openPicker()">${icon('plus')}${current && !current.open ? t('addAnother') : t('nextExercise')}</button>`
+        // Jour passé déjà noté : on y revient rarement pour ajouter, d'où un simple lien
+        : `<p class="center"><button class="link" onclick="openPicker()">+ ${t('addForgotten')}</button></p>`}
       ${entries.some(entryDone) ? `<p class="muted small center foot">${sessionFoot(entries)}</p>` : ''}
       ${!current && entries.some(entryDone) ? `<p class="center"><button class="link" onclick="openSaveRoutine()">${t('saveAsRoutine')}</button></p>` : ''}`;
   }
   if (!isToday) html += `<p class="center"><button class="link" onclick="goToDay('${today}')">${t('backToday')}</button></p>`;
   $('#view').innerHTML = html;
-}
-
-// Favoris en un geste, sous le bouton d'ajout
-function quickFavs() {
-  const favs = favorites().map(findExercise);
-  if (!favs.length) return '';
-  return `<div class="quick"><p class="label">${t('favorites')}</p><div class="chips">${favs.map(ex =>
-    `<button class="chip" onclick="pickExercise(${jsq(ex.id)})">${icon('star')}${esc(exLabel(ex))}</button>`).join('')}</div></div>`;
 }
 
 function sessionFoot(entries) {

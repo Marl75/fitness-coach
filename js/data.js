@@ -187,7 +187,7 @@ function deleteCustomExercise(id) {
 }
 
 const prefs = () => Data.settings.find(s => s.id === 'prefs') || {};
-const weeklyGoal = () => prefs().weeklyGoal || 3;
+const weeklyGoal = () => prefs().weeklyGoal || 2; // 2 : repère ACSM pour progresser
 function savePrefs(patch) {
   Backend.put('settings', 'prefs', clean({ ...prefs(), id: undefined, ...patch }));
 }

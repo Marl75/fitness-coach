@@ -22,7 +22,6 @@ function renderSettings() {
       <button class="btn-line" onclick="openMyExercises()">${t('myExercises')}
         <span class="btn-sub">${nEx ? tn('createdN', nEx) : t('myExercisesNone')}</span></button>
       <div class="btn-line setting-line"><span>${t('language')}</span>${langSwitchHtml()}</div>
-      <button class="link center-link" onclick="openOnboarding()">${t('replayIntro')}</button>
     </div>`;
 }
 const goalStepperHtml = () => countStepper(weeklyGoal(), 'changeGoal(-1)', 'changeGoal(1)', 'goal-val');
@@ -49,7 +48,7 @@ function setupCardHtml() {
   const steps = setupSteps();
   const n = steps.filter(s => s.done).length;
   return `<section class="setup-card" aria-label="${t('setupTitle')}">
-    <div class="setup-top"><b>${t('setupTitle')}</b><span class="muted small">${t('setupCount', { n, total: steps.length })}</span>
+    <div class="setup-top"><b>${t('setupTitle')}</b>
       <button class="icon-btn" onclick="hideSetupCard()" aria-label="${t('setupHide')}">${icon('close')}</button></div>
     <div class="setup-bar"><span style="width:${Math.round(100 * n / steps.length)}%"></span></div>
     ${steps.map(s => s.done
@@ -74,7 +73,7 @@ function openWeeklyGoal() {
 
 // ===== PRÉSENTATION (premier lancement) =====
 // Trois écrans facultatifs : séances par semaine, muscles cibles, première routine.
-// Proposée une seule fois, aux comptes tout neufs ; on peut la revoir depuis Réglages.
+// Proposée une seule fois, aux comptes tout neufs ; ensuite, tout se règle dans l'onglet Réglages.
 function maybeOnboard() {
   const p = prefs();
   if (!Data.loaded || p.onboarded || Data.sessions.length || Data.exercises.length || p.weeklyGoal !== undefined) return;
