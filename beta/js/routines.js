@@ -116,9 +116,13 @@ function deleteRoutine(id) {
 // Créer ou modifier une routine sans passer par une séance : nom, exercices choisis dans la liste, ordre
 function openRoutineEditor(id) {
   const r = id && (prefs().routines || []).find(x => x.id === id);
-  UI.rDraft = { id: r ? r.id : null, name: r ? r.name : '', items: r ? [...r.items] : [], adding: !r, q: '' };
+  UI.rDraft = { id: r ? r.id : null, name: r ? r.name : '', items: r ? [...r.items] : [] };
+  showRoutineEditor();
+}
+function showRoutineEditor() {
+  UI.pickFor = null;
   openSheet(`
-    <div class="sheet-head"><div><div class="eyebrow">${t('myRoutines')}</div><h3>${r ? t('editRoutine') : t('newRoutine')}</h3></div>
+    <div class="sheet-head"><div><div class="eyebrow">${t('myRoutines')}</div><h3>${UI.rDraft.id ? t('editRoutine') : t('newRoutine')}</h3></div>
       <button class="icon-btn" onclick="openRoutines()" aria-label="${t('back')}">${icon('prev')}</button></div>
     <label class="field"><span>${t('routineName')}</span>
       <input class="input" id="rd-name" maxlength="40" placeholder="${t('routineNameEx')}" value="${esc(UI.rDraft.name)}" oninput="UI.rDraft.name=this.value"></label>
@@ -137,21 +141,9 @@ function renderRoutineEditor() {
       <button class="icon-btn" onclick="rdMove(${i},1)" ${i === d.items.length - 1 ? 'disabled' : ''} aria-label="${t('moveDown')}">${icon('down')}</button>
       <button class="icon-btn" onclick="rdRemove(${i})" aria-label="${t('remove')} : ${esc(exLabel(ex))}">${icon('close')}</button></div>`;
   }).join('');
-  let add = '';
-  if (d.adding) {
-    const q = simple(d.q);
-    const pool = allExercises().filter(e => !isHidden(e.id) && !d.items.includes(e.id)
-      && (!q || [e.name, e.en, ...(e.aliases || [])].filter(Boolean).some(n => simple(n).includes(q))))
-      .sort((a, b) => (isFav(b.id) - isFav(a.id)) || byName(a, b)).slice(0, q ? 30 : 15);
-    add = `<div class="rd-add">
-      <input class="input" type="search" id="rd-search" placeholder="${t('search')}" value="${esc(d.q)}" oninput="UI.rDraft.q=this.value;renderRoutineEditor();const i=$('#rd-search');i.focus();i.setSelectionRange(i.value.length,i.value.length)" aria-label="${t('searchAria')}">
-      ${pool.map(e => `<button class="rd-pick" onclick="rdAdd(${jsq(e.id)})">${pictoTile(e, 'small')}<span class="pick-name">${esc(exLabel(e))}${isFav(e.id) ? ` <span class="fav-mark">${icon('star')}</span>` : ''}</span>${icon('plus')}</button>`).join('')}
-      ${!q ? `<p class="muted small">${t('rdSearchMore')}</p>` : ''}
-    </div>`;
-  }
   box.innerHTML = `<p class="field"><span>${t('routineExercisesN', { n: d.items.length })}</span></p>
     ${chosen || `<p class="muted small">${t('rdEmpty')}</p>`}
-    ${d.adding ? add : `<button class="chip dashed rd-add-btn" onclick="UI.rDraft.adding=true;renderRoutineEditor()">${icon('plus')}${t('rdAddExercises')}</button>`}`;
+    <button class="chip dashed rd-add-btn" onclick="openPicker('routine')">${icon('plus')}${t('rdAddExercises')}</button>`;
 }
 function rdAdd(id) { UI.rDraft.items.push(id); renderRoutineEditor(); }
 function rdRemove(i) { UI.rDraft.items.splice(i, 1); renderRoutineEditor(); }
