@@ -3,7 +3,7 @@
 // - Bibliothèques Firebase et polices (adresses versionnées) : copie locale d'abord.
 // - Données Firestore et connexion : jamais interceptées (Firestore gère lui-même le hors connexion).
 // Penser à ajouter ici tout nouveau fichier js et à changer le nom du cache.
-const CACHE = 'fitcoach-v30';
+const CACHE = 'fitcoach-20261021215231';
 const CORE = [
   './',
   './index.html',
@@ -19,7 +19,15 @@ const CORE = [
   './js/tips.js',
   './js/insights.js',
   './js/routines.js',
-  './js/app.js',
+  './js/usage.js',
+  './js/core.js',
+  './js/session.js',
+  './js/picker.js',
+  './js/entry.js',
+  './js/track.js',
+  './js/account.js',
+  './js/settings.js',
+  './js/boot.js',
   './icon-192.png',
   './icon-32.png',
 ];
@@ -41,7 +49,9 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    // La version de test (beta/) a ses propres copies : chacune ne supprime que les siennes
+    const mine = k => (CACHE.startsWith('fitcoach-beta-') ? k.startsWith('fitcoach-beta-') : k.startsWith('fitcoach-') && !k.startsWith('fitcoach-beta-'));
+    await Promise.all(keys.filter(k => k !== CACHE && mine(k)).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });

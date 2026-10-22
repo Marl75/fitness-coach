@@ -1,0 +1,15 @@
+# Lance le test de non-régression (?demo&smoke, en français puis en anglais) à chaque envoi
+# sur GitHub et sur chaque PR (onglet Actions). Ne touche à aucune vraie donnée : mode démo.
+name: Test de non-régression
+on: [push, pull_request]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - run: python3 -m http.server 8000 &
+      - run: node tests/run-smoke.mjs

@@ -1,10 +1,12 @@
 // ===== OUTILS =====
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Valeur passée à une fonction dans un attribut onclick : échappée pour JavaScript puis pour HTML
+// (esc seul ne suffit pas : &#39; redevient ' avant que le JavaScript soit lu)
+const jsq = v => esc(JSON.stringify(String(v ?? '')));
 const icon = (id, cls = '') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
 // Dates au format AAAA-MM-JJ, toujours en heure locale
 // (l'ancienne appli utilisait l'heure UTC : à Singapour, une séance avant 8 h tombait la veille).
@@ -17,7 +19,6 @@ const daysBetween = (a, b) => Math.round((toDate(b) - toDate(a)) / 86400000);
 const fmtDay = s => toDate(s).toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
 const fmtShort = s => toDate(s).toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
 const fmtDM = s => toDate(s).toLocaleDateString(locale(), { day: 'numeric', month: 'long' });
-const fmtLong = s => toDate(s).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' });
 function relDay(s) {
   const n = daysBetween(s, isoDate());
   if (n === 0) return t('today');
@@ -37,8 +38,9 @@ const fmtNum = n => { const s = String(Math.round(n * 100) / 100); return curren
 const doneSets = e => (e.sets || []).filter(s => s.done !== false && (s.reps || s.weight));
 const pendingIndex = e => e.kind === 'sets' ? (e.sets || []).findIndex(s => s.done === false) : -1;
 // Cardio, cours : « pending » tant que « C'est fait » n'a pas été touché (exercice prévu ou en cours)
+// Muscu : « open » une fois la dernière série cochée, jusqu'à « Terminer » (on peut encore ajouter une série)
 const entryDone = e => (e.kind === 'sets' ? doneSets(e).length > 0 : !e.pending);
-const isPending = e => (e.kind === 'sets' ? pendingIndex(e) >= 0 : !!e.pending);
+const isPending = e => (e.kind === 'sets' ? pendingIndex(e) >= 0 || !!e.open : !!e.pending);
 
 // Résumé lisible d'un exercice noté : « 3 × 10 · 20 kg », « 25 min · 3 km »
 function entrySummary(e) {

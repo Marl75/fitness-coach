@@ -39,11 +39,10 @@ const weekRange = () => [isoDate(mondayOf(new Date())), isoDate()];
 
 function musclesCardHtml() {
   const [from, to] = weekRange();
-  const { days, cardioMin } = muscleWeek(from, to);
+  const { days } = muscleWeek(from, to);
   const goals = prefs().goals || {};
   const n = m => (days[m] || new Set()).size;
-  const list = MUSCLES.filter(m => n(m) || goals[m])
-    .sort((a, b) => ((goals[b] === 'up') - (goals[a] === 'up')) || ((goals[a] === 'down') - (goals[b] === 'down')) || (n(b) - n(a)));
+  const list = [...MUSCLES].sort((a, b) => ((goals[b] === 'up') - (goals[a] === 'up')) || (n(b) - n(a)));
 
   // Points d'attention : muscles à ménager sollicités, muscles à développer en retard
   const alerts = MUSCLES.filter(m => goals[m] === 'down' && n(m)).map(m => t('alertSpareDays', { m: cap(muscleShort(m)), n: tn('daysN', n(m)) }));
@@ -53,30 +52,22 @@ function musclesCardHtml() {
     alerts.push(lt ? t('alertNotSince', { m: cap(muscleShort(m)), when: relDay(lt) }) : t('alertNever', { m: cap(muscleShort(m)) }));
   }
 
-  const dots = (k, g) => {
-    const slots = Math.max(g === 'up' ? DAYS_TARGET : 0, k, 1);
-    return Array.from({ length: slots }, (_, i) => `<span class="dot${i < k ? ' on' : ''}${i >= k && g === 'up' && i < DAYS_TARGET ? ' want' : ''}"></span>`).join('');
-  };
-  const rows = list.map(m => {
+  // Grille des muscles : vide = pas travaillé, clair = 1 jour, plein = 2 jours ou plus (le repère)
+  const cells = list.map(m => {
     const k = n(m), g = goals[m];
-    return `<button class="mrow ${g === 'down' ? 'warn' : g === 'up' ? 'up' : ''}" onclick="openMuscle('${m}')" aria-label="${esc(t('muscleOpenAria', { m: t('m_' + m) }))}">
-      <span class="mname">${esc(t('m_' + m).replace(/\s*\(.*\)$/, ''))}${g === 'up' ? ` <span class="mgoal">${t('goalUp').toLowerCase()}</span>` : g === 'down' ? ` <span class="mgoal warn">${t('goalDown').toLowerCase()}</span>` : ''}</span>
-      <span class="mdots" role="img" aria-label="${esc(tn('daysN', k))}">${dots(k, g)}</span>
-      <span class="mval">${tn('daysN', k)}</span>
-    </button>`;
+    const cls = ['heat-cell', k >= DAYS_TARGET ? 'h2' : k ? 'h1' : 'h0', g === 'down' && 'spare', g === 'up' && 'up'].filter(Boolean).join(' ');
+    return `<button class="${cls}" onclick="openMuscle('${m}')" aria-label="${esc(t('muscleOpenAria', { m: t('m_' + m) }) + ' : ' + tn('daysN', k))}">
+      <span class="heat-name">${esc(cap(muscleShort(m)))}</span><span class="heat-n">${k}</span></button>`;
   }).join('');
-  const pct = Math.min(100, Math.round(100 * cardioMin / CARDIO_TARGET));
 
-  return `<h2 class="card-title">${t('musclesWeek')}</h2>
-    <p class="muted small">${t('musclesDaysHint')}</p>
-    ${alerts.length ? `<ul class="malerts">${alerts.slice(0, 4).map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}
-    ${rows || `<p class="muted small">${t('musclesEmpty')}</p>`}
-    ${!Object.keys(goals).length ? `<button class="link" onclick="openGoals()">${t('musclesSetGoals')}</button>` : ''}
-    <div class="cardio-line">
-      <div class="mrow-top"><span class="mname">${t('cardioWeek')}</span><span class="mval">${t('cardioOf', { n: Math.round(cardioMin), target: CARDIO_TARGET })}</span></div>
-      <div class="mbar"><span class="main" style="width:${pct}%"></span></div>
-    </div>
-    <p class="tips-src">${t('musclesDaysSrc', { d: DAYS_TARGET, c: CARDIO_TARGET })} ${srcLink(ACSM_2026)}, ${srcLink(WHO_2020)}</p>`;
+  return `<div class="card-head"><h2 class="card-title">${t('musclesWeek')}</h2>
+      <button class="icon-btn info-btn" onclick="UI.musclesInfo=!UI.musclesInfo;render()" aria-expanded="${!!UI.musclesInfo}" aria-label="${t('musclesInfoAria')}">${icon('info')}</button></div>
+    ${UI.musclesInfo ? `<div class="muscles-info"><p class="muted small">${t('musclesDaysHint')}</p>
+      <p class="tips-src">${t('musclesDaysSrc', { d: DAYS_TARGET, c: CARDIO_TARGET })} ${srcLink(ACSM_2026)}, ${srcLink(WHO_2020)}</p></div>` : ''}
+    ${alerts.length ? `<ul class="malerts">${alerts.slice(0, 3).map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}
+    <div class="heat">${cells}</div>
+    <p class="heat-legend"><span><i class="heat-dot h1"></i>${t('heat1')}</span><span><i class="heat-dot h2"></i>${t('heat2', { d: DAYS_TARGET })}</span>${Object.values(goals).includes('down') ? `<span><i class="heat-dot spare"></i>${t('goalDown')}</span>` : ''}</p>
+    ${!Object.keys(goals).length ? `<button class="link" onclick="openGoals()">${t('musclesSetGoals')}</button>` : ''}`;
 }
 
 // Écran d'accueil : le muscle à développer le plus en retard cette semaine
@@ -116,7 +107,7 @@ function openMuscle(m) {
       <div class="pick-main">${pictoTile(ex, 'small')}<span class="pick-text"><span class="pick-name">${esc(exLabel(ex))}${isFav(ex.id) ? ` <span class="fav-mark">${icon('star')}</span>` : ''}</span>${enLine(exEn(ex))}
         ${note ? `<span class="pick-warn">${esc(note)}</span>` : ''}
         <span class="pick-sub">${esc(last ? `${entrySummary(last.entry)} · ${relDay(last.date)}` : t('neverDone'))}</span></span></div>
-      <button class="add-btn" onclick="addFromMuscle('${esc(ex.id)}')" aria-label="${esc(t('addToSession'))} : ${esc(exLabel(ex))}">${icon('plus')}</button>
+      <button class="add-btn" onclick="addFromMuscle(${jsq(ex.id)})" aria-label="${esc(t('addToSession'))} : ${esc(exLabel(ex))}">${icon('plus')}</button>
     </div>`;
   };
   const week = (detail[m] || []).map(d => `<div class="day-line"><span>${esc(cap(fmtDay(d.date)))} · ${esc(entryName(d.entry))}</span><span>${esc(entrySummary(d.entry))}</span></div>`).join('');
@@ -161,10 +152,10 @@ function clearRepTarget(exId) {
 }
 function repTargetHtml(exId, justSet) {
   const tg = repTarget(exId) || (justSet ? [8, 12] : null);
-  if (!tg) return `<button class="chip dashed rep-set" onclick="stepRepTarget('${esc(exId)}',0,0)">${icon('plus')}${t('repTargetAdd')}</button>`;
-  const st = i => `<div class="stepper small"><button type="button" onclick="stepRepTarget('${esc(exId)}',${i},-1)" aria-label="${t('minus')}">${icon('minus')}</button><span class="serif">${tg[i]}</span><button type="button" onclick="stepRepTarget('${esc(exId)}',${i},1)" aria-label="${t('plus')}">${icon('plus')}</button></div>`;
+  if (!tg) return `<button class="chip dashed rep-set" onclick="stepRepTarget(${jsq(exId)},0,0)">${icon('plus')}${t('repTargetAdd')}</button>`;
+  const st = i => countStepper(tg[i], `stepRepTarget('${esc(exId)}',${i},-1)`, `stepRepTarget('${esc(exId)}',${i},1)`);
   return `<div class="rep-target"><p class="sub-label">${t('repTarget')}</p>
-    <div class="rep-row">${st(0)}<span class="muted">${t('to')}</span>${st(1)}<button class="link" onclick="clearRepTarget('${esc(exId)}')">${t('remove')}</button></div>
+    <div class="rep-row">${st(0)}<span class="muted">${t('to')}</span>${st(1)}<button class="link" onclick="clearRepTarget(${jsq(exId)})">${t('remove')}</button></div>
     <p class="muted small">${t('repTargetHint', { b: tg[1], a: tg[0] })}</p></div>`;
 }
 function progressionFor(exId, beforeDate) {
@@ -196,7 +187,7 @@ function progressionFor(exId, beforeDate) {
 function progressionChip(exId, entryId) {
   const p = progressionFor(exId, UI.date);
   if (!p) return '';
-  return `<button class="progress-chip" onclick="applyWeight('${esc(entryId)}', ${p.lo})">
+  return `<button class="progress-chip" onclick="applyWeight(${jsq(entryId)}, ${p.lo})">
     <span class="pc-arrow">↑</span><span class="pc-text">${t(p.target ? 'progressChipTarget' : 'progressChip', { w: fmtNum(p.lo) })}</span><span class="pc-act">${t('apply')}</span></button>`;
 }
 // Sur la page de l'exercice : le détail et la source
@@ -218,7 +209,7 @@ function applyWeight(entryId, v) {
 function openMyExercises() {
   openSheet(`
     <div class="sheet-head">
-      <div><div class="eyebrow">${t('account')}</div><h3>${t('myExercises')}</h3></div>
+      <div><div class="eyebrow">${t('navSettings')}</div><h3>${t('myExercises')}</h3></div>
       <button class="icon-btn" onclick="closeSheet()" aria-label="${t('close')}">${icon('close')}</button>
     </div>
     <p class="muted small">${t('myExercisesHint')}</p>
@@ -242,11 +233,11 @@ function renderMyExercises() {
         <span class="pick-sub">${tn('workouts', sessionsUsing(ex.id))}</span></div></div>
       ${sim ? `<p class="small myex-sim">${t('looksLike')} <b>${esc(exLabel(sim))}</b></p>` : ''}
       <div class="myex-actions">
-        ${sim ? `<button class="btn-accent" onclick="confirmAttach('${esc(ex.id)}','${esc(sim.id)}')">${t('attachTo', { name: esc(exLabel(sim)) })}</button>` : ''}
-        <button class="chip" onclick="openAttach('${esc(ex.id)}')">${sim ? t('attachOther') : t('attachPick')}</button>
-        <button class="chip${open ? ' active' : ''}" onclick="UI.editMuscles=${open ? 'null' : `'${esc(ex.id)}'`};renderMyExercises()">${t('editMuscles')}</button>
+        ${sim ? `<button class="btn-accent" onclick="confirmAttach(${jsq(ex.id)},${jsq(sim.id)})">${t('attachTo', { name: esc(exLabel(sim)) })}</button>` : ''}
+        <button class="chip" onclick="openAttach(${jsq(ex.id)})">${sim ? t('attachOther') : t('attachPick')}</button>
+        <button class="chip${open ? ' active' : ''}" onclick="UI.editMuscles=${open ? 'null' : `${jsq(ex.id)}`};renderMyExercises()">${t('editMuscles')}</button>
       </div>
-      ${open ? `<div class="chips wrap">${MUSCLES.map(m => `<button class="chip${(ex.muscles || []).includes(m) ? ' active' : ''}" aria-pressed="${(ex.muscles || []).includes(m)}" onclick="toggleCustomMuscle('${esc(ex.id)}','${m}')">${t('m_' + m)}</button>`).join('')}</div>` : ''}
+      ${open ? `<div class="chips wrap">${MUSCLES.map(m => `<button class="chip${(ex.muscles || []).includes(m) ? ' active' : ''}" aria-pressed="${(ex.muscles || []).includes(m)}" onclick="toggleCustomMuscle(${jsq(ex.id)},'${m}')">${t('m_' + m)}</button>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -275,7 +266,7 @@ function renderAttachList() {
   const ex = findExercise(UI.attachFor);
   const q = simple(UI.attachQ || '');
   const list = CATALOG.filter(e => e.kind === ex.kind && (!q || [e.name, e.en, ...(e.aliases || [])].some(n => simple(n).includes(q)))).sort(byName);
-  box.innerHTML = list.map(e => `<div class="pick"><button class="pick-main" onclick="confirmAttach('${esc(ex.id)}','${esc(e.id)}')">${pictoTile(e)}<span class="pick-text"><span class="pick-name">${esc(exLabel(e))}</span>${enLine(exEn(e))}<span class="pick-musc">${esc(musclesLine(e))}</span></span></button></div>`).join('')
+  box.innerHTML = list.map(e => `<div class="pick"><button class="pick-main" onclick="confirmAttach(${jsq(ex.id)},${jsq(e.id)})">${pictoTile(e)}<span class="pick-text"><span class="pick-name">${esc(exLabel(e))}</span>${enLine(exEn(e))}<span class="pick-musc">${esc(musclesLine(e))}</span></span></button></div>`).join('')
     || `<p class="muted small empty-list">${t('noMatch', { q: esc(UI.attachQ) })}</p>`;
 }
 function confirmAttach(customId, catId) {
@@ -318,31 +309,3 @@ function attachMany(map) {
   });
   ids.forEach(deleteCustomExercise);
 }
-
-// Anciens exercices créés (appli FitCoach), rattachés automatiquement une fois les données reçues.
-// Correspondances confirmées par l'utilisatrice (nom simplifié → exercice de la liste).
-const AUTO_ATTACH = {
-  'bras': 'triceps-poulie',
-  'tire de cordes': 'triceps-poulie',
-  'leve de poids dos parallele au sol': 'row-haltere',
-  'montee de genoux': 'releve-jambes',
-  'jambes inner thigh': 'adduction',
-  'jambes outer thigh': 'abduction',
-  'jambes seated leg press': 'leg-press',
-  'traction': 'pullup',
-};
-let autoAttachDone = false;
-function autoAttachOld() {
-  if (autoAttachDone || DEMO_SKIP_AUTO() || !['sessions', 'exercises', 'settings'].every(k => Data.loaded[k])) return;
-  autoAttachDone = true;
-  const map = {};
-  for (const e of Data.exercises) {
-    const to = AUTO_ATTACH[simple(e.name)];
-    if (to && CATALOG_BY_ID[to]) map[e.id] = to;
-  }
-  if (!Object.keys(map).length) return;
-  attachMany(map);
-  toast(tn('autoAttached', Object.keys(map).length));
-}
-// En démo, seulement si on le demande (?autoattach) : évite de toucher aux exercices de test
-const DEMO_SKIP_AUTO = () => DEMO && !new URLSearchParams(location.search).has('autoattach');

@@ -1,5 +1,4 @@
 // ===== GRAPHIQUES (SVG maison, une seule série, infobulle au toucher) =====
-const SVGNS = 'http://www.w3.org/2000/svg';
 
 function niceMax(v) {
   if (v <= 4) return Math.max(1, Math.ceil(v));
@@ -17,51 +16,6 @@ function showTip(box, x, y, html) {
   tip.style.top = y + 'px';
 }
 const hideTip = box => box.querySelector('.tip')?.remove();
-
-// Barres verticales : [{ label, value, tip }]
-function barChart(box, data, { height = 150 } = {}) {
-  const W = box.clientWidth || 320, H = height;
-  const m = { t: 10, r: 4, b: 22, l: 22 };
-  const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const max = niceMax(Math.max(3, ...data.map(d => d.value)));
-  const band = iw / data.length;
-  const bw = Math.min(26, band * 0.62);
-  const y = v => m.t + ih - (v / max) * ih;
-  const ticks = max <= 4 ? Array.from({ length: max + 1 }, (_, i) => i) : [0, max / 2, max];
-
-  let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img">`;
-  s += `<g class="grid">${ticks.map(t => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/>`).join('')}</g>`;
-  s += `<g class="axis">${ticks.map(t => `<text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join('')}`;
-  const every = Math.ceil(data.length / 6);
-  data.forEach((d, i) => {
-    if ((data.length - 1 - i) % every === 0) s += `<text x="${m.l + band * i + band / 2}" y="${H - 4}" text-anchor="middle">${esc(d.label)}</text>`;
-  });
-  s += `</g><g>`;
-  data.forEach((d, i) => {
-    if (!d.value) return;
-    const x = m.l + band * i + (band - bw) / 2, top = y(d.value), base = y(0), r = Math.min(4, bw / 2, base - top);
-    s += `<path fill="var(--accent)" d="M${x},${base} V${top + r} Q${x},${top} ${x + r},${top} H${x + bw - r} Q${x + bw},${top} ${x + bw},${top + r} V${base} Z"/>`;
-  });
-  s += `</g><g>`;
-  data.forEach((d, i) => {
-    s += `<rect data-i="${i}" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ih}" fill="transparent"/>`;
-  });
-  s += `</g></svg>`;
-  box.innerHTML = s;
-
-  const svg = box.querySelector('svg');
-  const onMove = ev => {
-    const i = ev.target.dataset?.i;
-    if (i === undefined) return hideTip(box);
-    const d = data[i];
-    const r = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
-    const scale = r.width / W;
-    showTip(box, (m.l + band * i + band / 2) * scale + r.left - br.left, y(d.value) * scale + r.top - br.top, d.tip);
-  };
-  svg.addEventListener('pointermove', onMove);
-  svg.addEventListener('pointerdown', onMove);
-  svg.addEventListener('pointerleave', () => hideTip(box));
-}
 
 // Courbe dans le temps : [{ date: 'AAAA-MM-JJ', value, tip }] (ordre chronologique)
 function lineChart(box, pts, { height = 170 } = {}) {
