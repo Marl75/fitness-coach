@@ -267,6 +267,28 @@
   await step('Lien confidentialité', async () => {
     openMenu(); ok($('#sheet a.privacy-link'), 'lien absent du compte'); closeSheet(); await wait();
   });
+  await step('Une idée, un souci ? (rien n’est envoyé)', async () => {
+    const realPost = postFeedback;
+    let sent = null;
+    postFeedback = async d => { sent = d; };
+    try {
+      setTab('settings'); await wait();
+      ok($('#view .feedback-link'), 'lien absent de Réglages');
+      openMenu(); ok([...document.querySelectorAll('#sheet .btn-line')].some(b => b.textContent.includes(t('fbMenu'))), 'ligne absente du compte');
+      openFeedback(); await wait();
+      ok(document.querySelectorAll('#sheet .chip[data-kind]').length === 3 && $('#fb-text'), 'formulaire incomplet');
+      ok($('#fb-email') && !$('#fb-reply'), 'démo : champ e-mail attendu à la place de la case');
+      await sendFeedback(); ok($('#fb-error').textContent === t('fbEmpty') && !sent, 'message vide accepté');
+      setFeedbackKind('bug'); ok($('#fb-text').placeholder === t('fbPh_bug') && $('#sheet .chip.active').dataset.kind === 'bug', 'type non changé');
+      $('#fb-text').value = '  Le minuteur s’arrête  '; $('#fb-email').value = 'test@exemple.test';
+      await sendFeedback(); await wait();
+      ok(sent && sent.kind === 'bug' && sent.text === 'Le minuteur s’arrête' && sent.app === 'routine', 'message mal préparé');
+      ok(sent.uid === null && sent.demo === true && sent.email === 'test@exemple.test' && sent.screen === 'settings', 'contexte mal rempli');
+      ok(Object.keys(sent).every(k => ['app', 'kind', 'text', 'email', 'uid', 'screen', 'lang', 'version', 'ua', 'demo', 'beta'].includes(k)), 'champ refusé par firestore.rules');
+      ok($('#sheet h3').textContent === t('fbThanks'), 'remerciement absent');
+      closeSheet(); await wait(); setTab('today'); await wait();
+    } finally { postFeedback = realPost; }
+  });
   await step('Aucune erreur JavaScript', async () => { ok(!errors.length, errors.join(' | ')); });
 
   if (currentLang !== startLang) toggleLanguage();

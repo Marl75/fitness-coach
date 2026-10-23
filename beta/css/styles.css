@@ -498,6 +498,12 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .kind-hint { font-size: 13px; color: var(--text-dim); }
 .goal { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 18px; font-weight: 700; }
 .menu-list { display: grid; gap: 8px; }
+/* « Une idée, un souci ? » (js/feedback.js) */
+.feedback-link { display: block; margin: 22px auto 0; }
+.fb-error { min-height: 18px; margin: -6px 0 6px; font-size: 13px; color: var(--danger); }
+.fb-reply { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; font-size: 14px; color: var(--text-dim); }
+.fb-reply input { width: 20px; height: 20px; accent-color: var(--accent); flex-shrink: 0; }
+.fb-context { margin-top: 12px; }
 
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); z-index: 60;
