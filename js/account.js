@@ -72,6 +72,7 @@ function openMenu() {
     <div class="menu-list">
       ${DEMO ? `<button class="btn-line" onclick="Backend.resetDemo()">${t('resetDemo')}</button>` : ''}
       <button class="btn-line" onclick="closeSheet();setTab('settings')">${t('navSettings')}<span class="btn-sub">${t('settingsSub')}</span></button>
+      ${feedbackOn() ? `<button class="btn-line" onclick="openFeedback()">${t('fbMenu')}<span class="btn-sub">${t('fbMenuSub')}</span></button>` : ''}
       <button class="btn-quiet" onclick="logout()">${DEMO ? t('leaveDemo') : t('logout')}</button>
       <a class="privacy-link" href="privacy-policy.html" target="_blank" rel="noopener">${t('privacy')}</a>
     </div>`);
