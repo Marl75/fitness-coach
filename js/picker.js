@@ -356,10 +356,11 @@ function pickExercise(id, exObj) {
   const entry = buildEntry(ex);
   const s = cloneSession(UI.date);
   closeOpenEntries(s);
-  s.entries.push(entry);
+  // Pendant une routine, l'exercice choisi se fait maintenant (ou juste après celui commencé) ; la suite de la routine reprend ensuite
+  s.entries.splice(nextSlot(s.entries), 0, entry);
   saveSession(s);
   closeSheet();
-  setTimeout(() => $('.now') && $('.now').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  scrollToNow();
   // Touché par erreur : « Annuler » le retire et rouvre la liste
   toast(t('addedEx', { name: exLabel(ex) }), { label: t('undo'), fn: () => { removeEntry(entry.id); openPicker(); } });
 }

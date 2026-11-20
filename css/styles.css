@@ -154,6 +154,10 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .row-mark { color: var(--accent); display: grid; }
 .row-mark svg { width: 20px; height: 20px; }
 .row-val { font-weight: 700; white-space: nowrap; }
+/* Exercice prévu d'une séance en cours : la ligne + « Maintenant » */
+.row-line { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--surface-2); }
+.row-line .row { flex: 1; min-width: 0; border-bottom: none; }
+.now-btn { flex-shrink: 0; }
 .foot { margin-top: 14px; }
 
 /* Carte de l'exercice en cours */

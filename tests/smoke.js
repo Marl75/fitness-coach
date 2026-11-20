@@ -164,6 +164,32 @@
     $('.toast button').click(); await wait();
     ok(today().entries.some(e => e.id === cur.id), 'non restauré');
   });
+  await step('Ordre libre pendant une routine', async () => {
+    const curId = () => today().entries.find(isPending).id;
+    const [a, b] = today().entries.map(e => e.id);
+    ok(curId() === a, 'la routine ne commence pas par le premier exercice');
+    ok($('.now-btn'), 'bouton « Maintenant » absent');
+    $('.now-btn').click(); await wait();
+    ok(curId() === b, '« Maintenant » ne lance pas l’exercice choisi');
+    const later = [...document.querySelectorAll('.now-links button')].find(x => x.textContent === t('doLater'));
+    ok(later, 'lien « Plus tard » absent');
+    later.click(); await wait();
+    ok(curId() === a && today().entries[1].id === b, '« Plus tard » ne remet pas l’exercice à la fin');
+    $('.toast button').click(); await wait();
+    ok(curId() === b, '« Plus tard » non annulé');
+    // Un exercice choisi dans la liste pendant la routine passe en cours, la routine reprend ensuite
+    pickExercise('squat'); await wait(200);
+    ok(today().entries.find(isPending).exId === 'squat', 'l’exercice ajouté n’est pas en cours');
+    const sq = entryOf('squat');
+    sq.sets.forEach((x, k) => finishSetAt(sq.id, k)); stopEntry(sq.id); await wait();
+    ok(curId() === b, 'la routine ne reprend pas après l’exercice ajouté');
+    // Exercice commencé : le nouveau vient juste après lui
+    const m = today().entries.find(e => isPending(e) && e.kind === 'sets');
+    ok(m, 'routine de test sans muscu');
+    doNow(m.id); finishSetAt(m.id, 0); pickExercise('hipthrust'); await wait(200);
+    const ids = today().entries.map(e => e.id);
+    ok(curId() === m.id && ids.indexOf(entryOf('hipthrust').id) === ids.indexOf(m.id) + 1, 'ajout pendant un exercice commencé mal placé');
+  });
   await step('Progression avec objectif de répétitions', async () => {
     const y = isoDate(addDays(new Date(), -1));
     saveSession({ id: y, entries: [{ id: 'sm1', exId: 'row-haltere', name: 'Rowing haltère', kind: 'sets', note: '', sets: [0, 1, 2].map(() => ({ reps: 12, weight: 10, done: true })) }] });
