@@ -33,7 +33,7 @@ function launchRoutine(id) {
   saveRoutines((prefs().routines || []).map(x => (x.id === id ? { ...x, lastUsed: UI.date } : x)));
   toast(t('routineLaunched', { name: r.name, n: exs.length }));
   trackUsage('routines');
-  setTimeout(() => $('.now') && $('.now').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  scrollToNow();
 }
 
 // Enregistrer la séance affichée comme routine : on choisit le nom et les exercices à garder
