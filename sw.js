@@ -25,6 +25,7 @@ const CORE = [
   './js/picker.js',
   './js/entry.js',
   './js/track.js',
+  './js/feedback.js',
   './js/account.js',
   './js/settings.js',
   './js/boot.js',

@@ -48,7 +48,7 @@ function renderToday() {
         ${!routines().length && isToday && !setupPending() ? `<p class="muted small routine-hint">${t('routineHint')}</p>` : ''}
       </div>`;
   } else {
-    html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e)).join('')}</div>
+    html += `<div class="rows">${entries.map(e => e === current ? currentCard(e) : entryRow(e, !!current)).join('')}</div>
       ${isToday || current
         ? `<button class="btn-outline" onclick="openPicker()">${icon('plus')}${current && !current.open ? t('addAnother') : t('nextExercise')}</button>`
         // Jour passé déjà noté : on y revient rarement pour ajouter, d'où un simple lien
@@ -67,17 +67,66 @@ function sessionFoot(entries) {
   return [tn('exercises', done.length), sets && tn('sets', sets), min && t('cardioMin', { n: min })].filter(Boolean).join(' · ');
 }
 
-function entryRow(e) {
+// live : une séance est en cours, un exercice prévu peut être lancé tout de suite (« Maintenant »)
+function entryRow(e, live) {
   const pending = isPending(e);
   const sub = e.kind === 'sets' ? (pending && !doneSets(e).length ? tn('plannedSets', e.sets.length) : entrySummary(e))
     : (pending ? t('plannedShort') : entrySummary(e));
   const mark = !pending ? `<span class="row-mark">${icon('check')}</span>` : icon('chev');
   const setup = setupSummary(e.setup);
-  return `<button class="row" onclick="openEntry(${jsq(e.id)})">${pictoTile(exOfEntry(e))}
+  const row = `<button class="row" onclick="openEntry(${jsq(e.id)})">${pictoTile(exOfEntry(e))}
     <span class="row-main"><span class="row-name">${esc(entryName(e))}</span>${enLine(entryEn(e))}<span class="row-sub">${esc(sub)}</span>
     ${setup ? `<span class="row-setup">${esc(setup)}</span>` : ''}
-    ${e.note ? `<span class="row-note">${esc(e.note)}</span>` : ''}</span>${mark}</button>`;
+    ${e.note ? `<span class="row-note">${esc(e.note)}</span>` : ''}</span>${live && pending ? '' : mark}</button>`;
+  if (!(live && pending)) return row;
+  return `<div class="row-line">${row}<button class="chip now-btn" onclick="doNow(${jsq(e.id)})" aria-label="${t('doNowAria', { name: esc(entryName(e)) })}">${t('doNow')}</button></div>`;
 }
+
+// ===== ORDRE LIBRE =====
+// L'exercice en cours est toujours le premier « à faire » de la liste : changer l'ordre, c'est déplacer les exercices.
+// Les exercices déjà faits restent donc dans l'ordre où ils ont été faits.
+const startedEntry = e => e.kind === 'sets' && doneSets(e).length > 0;
+// Où placer un exercice qu'on veut faire tout de suite : avant le premier exercice prévu pas encore commencé
+// (si l'exercice en cours a des séries faites, le nouveau vient juste après lui)
+function nextSlot(entries) {
+  const i = entries.findIndex(e => isPending(e) && !startedEntry(e));
+  return i < 0 ? entries.length : i;
+}
+const scrollToNow = () => setTimeout(() => $('.now') && $('.now').scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+// « Maintenant » : cet exercice passe en cours ; celui qui l'était reprend juste après
+function doNow(entryId) {
+  const s = cloneSession(UI.date);
+  closeOpenEntries(s);
+  const k = s.entries.findIndex(x => x.id === entryId);
+  if (k < 0) return;
+  const [e] = s.entries.splice(k, 1);
+  const at = s.entries.findIndex(isPending);
+  s.entries.splice(at < 0 ? s.entries.length : at, 0, e);
+  saveSession(s);
+  scrollToNow();
+}
+// « Plus tard » : l'exercice en cours passe en fin de liste (séries déjà faites gardées), le suivant prend sa place
+function doLater(entryId) {
+  const s = cloneSession(UI.date);
+  const k = s.entries.findIndex(x => x.id === entryId);
+  if (k < 0) return;
+  const [e] = s.entries.splice(k, 1);
+  s.entries.push(e);
+  saveSession(s);
+  toast(t('movedLater', { name: entryName(e) }), { label: t('undo'), fn: () => {
+    const back = cloneSession(UI.date);
+    const j = back.entries.findIndex(x => x.id === entryId);
+    if (j < 0) return;
+    back.entries.splice(k, 0, ...back.entries.splice(j, 1));
+    saveSession(back);
+  } });
+  scrollToNow();
+}
+// « Plus tard » n'a de sens que s'il reste un autre exercice à faire
+const laterLink = e => {
+  const others = ((sessionOf(UI.date) || {}).entries || []).some(x => x.id !== e.id && isPending(x));
+  return others && !e.open ? `<button onclick="doLater(${jsq(e.id)})">${t('doLater')}</button>` : '';
+};
 
 // L'exercice en cours : un tableau des séries (poids, répétitions, coche).
 // La ligne en cours a ses boutons − / + ; toucher un poids ou un nombre ouvre le réglage précis.
@@ -119,6 +168,7 @@ function currentCard(e) {
     </div>`}
     <div class="now-links">
       <button onclick="openEntry(${id})">${t('details')}</button>
+      ${laterLink(e)}
     </div>
   </section>`;
 }
@@ -158,7 +208,7 @@ function cardioCard(e) {
     ${track}
     ${diff ? `<p class="progress-chip static"><span class="pc-arrow">↑</span><span>${esc(diff)}</span></p>` : ''}
     <button class="btn-accent big" onclick="finishCardio(${id})">${icon('check')}${t('done')}</button>
-    <div class="now-links"><button onclick="openEntry(${id})">${t('details')}</button></div>
+    <div class="now-links"><button onclick="openEntry(${id})">${t('details')}</button>${laterLink(e)}</div>
   </section>`;
 }
 // « Par rapport à la dernière fois : pente +1 %, vitesse +0,5 km/h »

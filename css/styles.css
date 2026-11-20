@@ -154,6 +154,10 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .row-mark { color: var(--accent); display: grid; }
 .row-mark svg { width: 20px; height: 20px; }
 .row-val { font-weight: 700; white-space: nowrap; }
+/* Exercice prévu d'une séance en cours : la ligne + « Maintenant » */
+.row-line { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--surface-2); }
+.row-line .row { flex: 1; min-width: 0; border-bottom: none; }
+.now-btn { flex-shrink: 0; }
 .foot { margin-top: 14px; }
 
 /* Carte de l'exercice en cours */
@@ -498,6 +502,12 @@ textarea.input { resize: vertical; min-height: 50px; margin-bottom: 12px; }
 .kind-hint { font-size: 13px; color: var(--text-dim); }
 .goal { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 18px; font-weight: 700; }
 .menu-list { display: grid; gap: 8px; }
+/* « Une idée, un souci ? » (js/feedback.js) */
+.feedback-link { display: block; margin: 22px auto 0; }
+.fb-error { min-height: 18px; margin: -6px 0 6px; font-size: 13px; color: var(--danger); }
+.fb-reply { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; font-size: 14px; color: var(--text-dim); }
+.fb-reply input { width: 20px; height: 20px; accent-color: var(--accent); flex-shrink: 0; }
+.fb-context { margin-top: 12px; }
 
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); z-index: 60;

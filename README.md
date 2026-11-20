@@ -32,6 +32,7 @@ A small progressive web app to log workouts and keep track of your consistency.
 - **Log another day** from a calendar showing the days you trained
 - **Progress**: calendar of days with and without exercise, workouts per week against a goal, progress per exercise
 - **Dark mode**
+- **“Ideas or issues?”**: a short form (idea, issue, something else) in the account menu and at the bottom of Settings; messages go to Firestore (`feedback`, readable only by the owner) with the app version, screen, language and browser, and are read in the Feedback tab of the admin page. Works in demo mode too, without an account
 
 ## Stack
 

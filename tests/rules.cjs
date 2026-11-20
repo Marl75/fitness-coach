@@ -15,6 +15,12 @@ const usage = { email: 'a@b.fr', firstSeen: 1, lastSeen: 1, activityByMonth: { [
   sessionCount: 2, routineCount: 1, customCount: 0, goalsCount: 3, lang: 'fr', months: { [M]: { opens: 2, routines: 1, lastSeen: 1 }, '2026-09': { opens: 9 } } };
 const merge = (a, b) => JSON.parse(JSON.stringify({ ...a, ...b }));
 const month = (m, v) => merge(usage, { months: { ...usage.months, [m]: v } });
+// Retours (js/feedback.js) ; ADMIN_UID est remplacé par ton identifiant dans les règles publiées
+const admin = { uid: 'ADMIN_UID', token: { email: 'admin@b.fr' } };
+const fb = { app: 'routine', kind: 'idea', text: 'Un minuteur de repos', email: 'a@b.fr', uid: 'u1', screen: 'today',
+  lang: 'fr', version: '20261022111548', ua: 'Mozilla/5.0', demo: false, beta: false, createdAt: TIME };
+const anonFb = merge(fb, { email: 'x@y.fr', uid: null, demo: true });
+const FB_ID = 'AbCdEfGhIjKlMnOpQrSt'; // identifiant automatique de Firestore : 20 lettres et chiffres
 // [attendu, nom, méthode, chemin, compte, avant, après, heure]
 const cases = [
   ['ALLOW', 'séance : lire la sienne', 'get', '/users/u1/sessions/2026-10-20', me, session],
@@ -50,6 +56,29 @@ const cases = [
   ['DENY', 'usage : champ inconnu dans le mois', 'update', '/usage/u1', me, usage, month(M, { ...usage.months[M], note: 'x' })],
   ['DENY', 'usage : document d’un autre compte', 'update', '/usage/u1', other, usage, merge(usage, { lastSeen: 9 })],
   ['DENY', 'usage : lire celui d’un autre', 'get', '/usage/u1', other, usage],
+  ['ALLOW', 'retour : avec un compte', 'create', '/feedback/' + FB_ID, me, null, fb],
+  ['ALLOW', 'retour : avec un compte, sans demander de réponse', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { email: '' })],
+  ['ALLOW', 'retour : sans compte (démo), avec un e-mail', 'create', '/feedback/' + FB_ID, null, null, anonFb],
+  ['ALLOW', 'retour : champs minimum', 'create', '/feedback/' + FB_ID, null, null, { app: 'routine', kind: 'bug', text: 'x', createdAt: TIME }],
+  ['DENY', 'retour : texte vide', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { text: '' })],
+  ['DENY', 'retour : texte de plus de 2000 caractères', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { text: 'x'.repeat(2001) })],
+  ['DENY', 'retour : type inconnu', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { kind: '<b>' })],
+  ['DENY', 'retour : autre appli', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { app: 'collection' })],
+  ['DENY', 'retour : champ inconnu', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { status: 'done' })],
+  ['DENY', 'retour : au nom d’un autre compte', 'create', '/feedback/' + FB_ID, other, null, fb],
+  ['DENY', 'retour : e-mail d’un autre avec un compte', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { email: 'x@y.fr' })],
+  ['DENY', 'retour : sans compte mais avec un identifiant', 'create', '/feedback/' + FB_ID, null, null, merge(anonFb, { uid: 'u1' })],
+  ['DENY', 'retour : date choisie par l’appareil', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { createdAt: '2020-01-01T00:00:00Z' })],
+  ['DENY', 'retour : navigateur trop long', 'create', '/feedback/' + FB_ID, me, null, merge(fb, { ua: 'x'.repeat(301) })],
+  ['DENY', 'retour : lire (compte ordinaire)', 'get', '/feedback/' + FB_ID, me, fb],
+  ['DENY', 'retour : lire sans compte', 'get', '/feedback/' + FB_ID, null, fb],
+  ['DENY', 'retour : modifier son message', 'update', '/feedback/' + FB_ID, me, fb, merge(fb, { text: 'autre' })],
+  ['ALLOW', 'retour : l’administratrice lit', 'get', '/feedback/' + FB_ID, admin, fb],
+  ['ALLOW', 'retour : l’administratrice change le statut', 'update', '/feedback/' + FB_ID, admin, fb, merge(fb, { status: 'done' })],
+  ['DENY', 'retour : statut inconnu', 'update', '/feedback/' + FB_ID, admin, fb, merge(fb, { status: '<b>' })],
+  ['DENY', 'retour : l’administratrice ne réécrit pas le texte', 'update', '/feedback/' + FB_ID, admin, fb, merge(fb, { text: 'autre' })],
+  ['ALLOW', 'retour : l’administratrice supprime', 'delete', '/feedback/' + FB_ID, admin, fb],
+  ['DENY', 'retour : identifiant choisi (guillemet)', 'create', "/feedback/x'onclick", me, null, fb],
   ['DENY', 'hors des collections prévues', 'create', '/autre/doc', me, null, { a: 1 }],
 ];
 (async () => {

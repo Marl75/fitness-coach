@@ -203,7 +203,7 @@ Object.assign(I18N.fr, {
   routinesHint2: 'Tu peux aussi en créer une depuis une séance terminée : « Enregistrer comme routine » en bas de l’écran Séance.',
   routineExercisesN: 'Exercices ({n})', rdEmpty: 'Ajoute les exercices de ta routine, dans l’ordre où tu les fais.',
   rdAddExercises: 'Ajouter des exercices', rdPickTitle: 'Exercices de la routine', rdPickDone_one: 'Terminé · {n} exercice', rdPickDone_other: 'Terminé · {n} exercices', routineNeedName: 'Donne un nom à ta routine', moveUp: 'Monter', moveDown: 'Descendre', delete: 'Supprimer',
-  routineDeleteConfirm: 'Supprimer la routine « {name} » ? Tes séances passées ne changent pas.', pseudo: 'Pseudo', pseudoPh: 'Ajoute ton prénom', pseudoSaved: 'Pseudo : {p}', pseudoRemoved: 'Pseudo retiré', details: 'Précisions', addedEx: '« {name} » ajouté', undo: 'Annuler', removeEx: 'Retirer cet exercice', removedEx: 'Exercice retiré',
+  routineDeleteConfirm: 'Supprimer la routine « {name} » ? Tes séances passées ne changent pas.', pseudo: 'Pseudo', pseudoPh: 'Ajoute ton prénom', pseudoSaved: 'Pseudo : {p}', pseudoRemoved: 'Pseudo retiré', details: 'Précisions', doNow: 'Maintenant', doNowAria: 'Faire « {name} » maintenant', doLater: 'Plus tard', movedLater: '« {name} » remis à la fin', addedEx: '« {name} » ajouté', undo: 'Annuler', removeEx: 'Retirer cet exercice', removedEx: 'Exercice retiré',
   muscleOpenAria: 'Voir les exercices pour : {m}',
   muscleMain: 'Le ciblent', muscleHelp: 'L’aident aussi',
   muscleNone: 'Aucun exercice de la liste ne travaille ce muscle.', neverDone: 'Jamais fait', addToSession: 'Ajouter à ma séance', goalWarnSec: 'Sollicite un peu : {m} (à ménager)',
@@ -287,7 +287,7 @@ Object.assign(I18N.en, {
   routinesHint2: 'You can also create one from a finished workout: “Save as routine” at the bottom of the Workout screen.',
   routineExercisesN: 'Exercises ({n})', rdEmpty: 'Add your routine’s exercises, in the order you do them.',
   rdAddExercises: 'Add exercises', rdPickTitle: 'Routine exercises', rdPickDone_one: 'Done · {n} exercise', rdPickDone_other: 'Done · {n} exercises', routineNeedName: 'Give your routine a name', moveUp: 'Move up', moveDown: 'Move down', delete: 'Delete',
-  routineDeleteConfirm: 'Delete the routine “{name}”? Your past workouts don’t change.', pseudo: 'Nickname', pseudoPh: 'Add your name', pseudoSaved: 'Nickname: {p}', pseudoRemoved: 'Nickname removed', details: 'Details', addedEx: '“{name}” added', undo: 'Undo', removeEx: 'Remove this exercise', removedEx: 'Exercise removed',
+  routineDeleteConfirm: 'Delete the routine “{name}”? Your past workouts don’t change.', pseudo: 'Nickname', pseudoPh: 'Add your name', pseudoSaved: 'Nickname: {p}', pseudoRemoved: 'Nickname removed', details: 'Details', doNow: 'Now', doNowAria: 'Do “{name}” now', doLater: 'Later', movedLater: '“{name}” moved to the end', addedEx: '“{name}” added', undo: 'Undo', removeEx: 'Remove this exercise', removedEx: 'Exercise removed',
   muscleOpenAria: 'See exercises for: {m}',
   muscleMain: 'Target it', muscleHelp: 'Also help',
   muscleNone: 'No exercise in the list works this muscle.', neverDone: 'Never done', addToSession: 'Add to my workout', goalWarnSec: 'Also works a little: {m} (go easy)',
@@ -383,6 +383,28 @@ Object.assign(I18N.en, {
   kpiSessions: 'Workouts', kpiCardio: 'Cardio', kpiStreak: 'Streak', weeksShort: 'wk',
   progressTitle: 'Progress', allExercises: 'All my exercises ({n})', musclesInfoAria: 'How to read this',
   heat1: '1 day', heat2: '{d}+ days: the benchmark',
+});
+
+// ===== « Une idée, un souci ? » (js/feedback.js) =====
+Object.assign(I18N.fr, {
+  fbMenu: 'Une idée, un souci ?', fbMenuSub: 'Dis-le moi, je lis tout', fbSettingsLink: 'Une idée, un souci ? Dis-le moi',
+  fbEyebrow: 'Ton avis', fbKind_idea: 'Une idée', fbKind_bug: 'Un souci', fbKind_other: 'Autre chose',
+  fbPh_idea: 'Qu’est-ce qui t’aiderait ?', fbPh_bug: 'Qu’est-ce qui s’est passé ? Sur quel écran ?', fbPh_other: 'Je t’écoute…',
+  fbEmpty: 'Écris quelques mots d’abord.', fbReply: 'Je veux bien une réponse à {email}',
+  fbEmailPh: 'Ton e-mail, si tu veux une réponse', fbSend: 'Envoyer',
+  fbContext: 'Envoyé avec la version de l’appli, l’écran ouvert, la langue et le navigateur, pour comprendre plus vite.',
+  fbThanks: 'Merci !', fbThanksText: 'Je lis tout.', fbThanksReply: 'Je lis tout, et je te réponds par e-mail.',
+  fbOffline: 'Pas de réseau pour l’instant : réessaie dans un moment.', fbFailed: 'L’envoi n’a pas abouti. Réessaie dans un moment.',
+});
+Object.assign(I18N.en, {
+  fbMenu: 'Ideas or issues?', fbMenuSub: 'Tell me, I read everything', fbSettingsLink: 'Ideas or issues? Tell me',
+  fbEyebrow: 'Your feedback', fbKind_idea: 'An idea', fbKind_bug: 'An issue', fbKind_other: 'Something else',
+  fbPh_idea: 'What would help you?', fbPh_bug: 'What happened? On which screen?', fbPh_other: 'I’m listening…',
+  fbEmpty: 'Write a few words first.', fbReply: 'I’d like a reply at {email}',
+  fbEmailPh: 'Your email, if you’d like a reply', fbSend: 'Send',
+  fbContext: 'Sent with the app version, current screen, language and browser, to understand faster.',
+  fbThanks: 'Thank you!', fbThanksText: 'I read everything.', fbThanksReply: 'I read everything, and I’ll reply by email.',
+  fbOffline: 'No connection right now: try again in a moment.', fbFailed: 'Couldn’t send it. Try again in a moment.',
 });
 
 // Pluriel : en français 0 et 1 sont au singulier, en anglais seul 1 l'est
