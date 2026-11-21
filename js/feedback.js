@@ -46,7 +46,7 @@ async function sendFeedback() {
   const doc = {
     app: 'routine', kind: feedbackKind, text: text.slice(0, 2000), email, uid: DEMO ? null : Data.user.uid,
     screen: feedbackScreen, lang: currentLang, version: appVersion(), ua: navigator.userAgent.slice(0, 300),
-    demo: DEMO, beta: !!window.BETA,
+    demo: DEMO,
   };
   const btn = $('#fb-send');
   btn.disabled = true;

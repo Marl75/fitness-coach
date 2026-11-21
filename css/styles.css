@@ -49,9 +49,6 @@ h3 { font-size: 30px; }
 .privacy-link { display: block; text-align: center; margin-top: 14px; font-size: 13px; }
 .privacy-link a, a.privacy-link { color: var(--text-faint); }
 
-/* Bandeau de la version de test (beta/) */
-.beta-bar { position: sticky; top: 0; z-index: 30; padding: 6px 12px; background: #F0B44A; color: #0F1115; font-size: 12px; font-weight: 600; text-align: center; }
-
 /* ===== Connexion ===== */
 .auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
 .auth-card { width: 100%; max-width: 380px; }

@@ -284,7 +284,7 @@
     $('#auth-password').value = ''; $('#auth-email').value = '';
   });
   await step('Démo : bandeau, compte, quitter', async () => {
-    ok(window.BETA || !$('#demo-bar').classList.contains('hidden'), 'bandeau démo absent');
+    ok(!$('#demo-bar').classList.contains('hidden'), 'bandeau démo absent');
     openMenu(); ok($('#sheet').textContent.includes(t('leaveDemo')) && $('#sheet').textContent.includes(t('demoAccount')), 'compte de démo mal affiché');
     closeSheet(); await wait();
     const d = demoData();

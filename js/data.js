@@ -3,9 +3,7 @@
 // Une séance par jour : l'identifiant d'une séance est sa date.
 // Hors connexion, Firestore garde les écritures sur le téléphone et les envoie au retour du réseau.
 
-// Version de test (dossier beta/, window.BETA) : données de démo par défaut, ?real pour son vrai compte
-const DEMO = !FIREBASE_CONFIG || new URLSearchParams(location.search).has('demo')
-  || (window.BETA === true && !new URLSearchParams(location.search).has('real'));
+const DEMO = !FIREBASE_CONFIG || new URLSearchParams(location.search).has('demo');
 
 const Data = {
   user: null,
@@ -95,10 +93,9 @@ function demoBackend() {
     resetDemo() { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); },
   };
 }
-// Quitter la démo : la vraie appli (dans la version de test, ?real : son vrai compte)
+// Quitter la démo : la vraie appli
 function leaveDemo(signup) {
   const q = new URLSearchParams();
-  if (window.BETA) q.set('real', '');
   if (signup) q.set('signup', '');
   q.set('lang', currentLang);
   location.href = location.pathname + '?' + q.toString().replace(/=(&|$)/g, '$1');

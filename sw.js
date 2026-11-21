@@ -50,9 +50,8 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    // La version de test (beta/) a ses propres copies : chacune ne supprime que les siennes
-    const mine = k => (CACHE.startsWith('fitcoach-beta-') ? k.startsWith('fitcoach-beta-') : k.startsWith('fitcoach-') && !k.startsWith('fitcoach-beta-'));
-    await Promise.all(keys.filter(k => k !== CACHE && mine(k)).map(k => caches.delete(k)));
+    // Efface les anciennes copies, y compris celles de l'ancienne version de test (fitcoach-beta-…)
+    await Promise.all(keys.filter(k => k !== CACHE && k.startsWith('fitcoach-')).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
