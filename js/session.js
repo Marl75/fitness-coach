@@ -40,7 +40,7 @@ function renderToday() {
     const hint = isToday ? startHint() : '';
     html += `
       <div class="empty">
-        <p class="muted">${isToday ? tn('weekProgress', weekCount, { goal: weeklyGoal() }) : t('noSessionDay')}
+        <p class="muted">${isToday ? tn('weekProgress', weekCount, { goal: weeklyGoal() }) + `<span class="week-pile" aria-hidden="true">${Array.from({ length: Math.max(weeklyGoal(), weekCount) }, (_, i) => `<i class="${i < weekCount ? 'full' : ''}"></i>`).join('')}</span>` : t('noSessionDay')}
           ${hint ? ` ${hint}` : ''}${!isToday && last ? '' : ''}</p>
         ${isToday ? setupCardHtml() : ''}
         ${routineCardsHtml()}

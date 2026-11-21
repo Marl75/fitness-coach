@@ -46,11 +46,14 @@ function musclesCardHtml() {
 
   // Points d'attention : muscles à ménager sollicités, muscles à développer en retard
   const alerts = MUSCLES.filter(m => goals[m] === 'down' && n(m)).map(m => t('alertSpareDays', { m: cap(muscleShort(m)), n: tn('daysN', n(m)) }));
+  const once = [];
   for (const m of MUSCLES.filter(m => goals[m] === 'up' && n(m) < DAYS_TARGET)) {
-    if (n(m)) { alerts.push(t('alertOnceDays', { m: cap(muscleShort(m)) })); continue; }
+    if (n(m)) { once.push(muscleShort(m)); continue; }
     const lt = lastTrained(m);
     alerts.push(lt ? t('alertNotSince', { m: cap(muscleShort(m)), when: relDay(lt) }) : t('alertNever', { m: cap(muscleShort(m)) }));
   }
+
+  if (once.length) alerts.unshift(t('alertOnceDays', { m: cap(once.join(', ')) }));
 
   // Grille des muscles : vide = pas travaillé, clair = 1 jour, plein = 2 jours ou plus (le repère)
   const cells = list.map(m => {
