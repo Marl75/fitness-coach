@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- Sécurité : scripts, styles et connexions seulement depuis l'appli, Firebase et Google Fonts.
-     'unsafe-inline' reste nécessaire tant que les boutons utilisent onclick="…". -->
+     'unsafe-inline' reste nécessaire tant que les boutons utilisent onclick="…".
+     Sur téléphone, la console affiche « Loading the script 'https://apis.google.com/js/api.js' violates the
+     Content Security Policy » : c'est normal. Firebase Auth (version compat) prépare d'office la connexion
+     par fenêtre Google et charge ce script ; l'appli ne s'en sert pas (connexion par e-mail seulement),
+     Firebase ignore l'échec et la connexion marche. Ne pas ajouter apis.google.com ici pour faire taire l'erreur. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; frame-src https://fitcoach-71392.firebaseapp.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Routine</title>
 <meta name="description" content="Routine — note tes séances de sport et suis ta régularité. Essaie la démo, sans compte.">
